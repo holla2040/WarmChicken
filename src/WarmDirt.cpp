@@ -356,6 +356,12 @@ void WarmDirt::sendPacketKeyValue(uint8_t address, char type, char *key, char *v
     sendPacket(address,type,buffer);
 } 
 
+void WarmDirt::sendStomp(uint8_t address, char type, char *key, char *value) {
+    char buffer[100];
+    sprintf(buffer,"%s=%s\n",key,value);
+    Serial.print(buffer);
+} 
+
 void WarmDirt::temperatureLoop() {
     if (temperatureControl) {
         //Serial.print("temperatureLoop ");

@@ -13,7 +13,7 @@ AVRDUDE_ARD_BAUDRATE    = 57600
 ARDUINO_DIR             = /opt/arduino-0022
 AVR_TOOLS_PATH          = /usr/bin
 AVRDUDE_ARD_PROGRAMMER  = stk500v1
-AVRDUDE                 = /opt/arduino-0022/hardware/tools/avrdude
+AVRDUDE                 = avrdude
                                             
 F_CPU                   = 16000000
 ARDUINO_PORT            = /dev/$(DEVICE_FILE)
@@ -30,11 +30,10 @@ runold:	reset all raw_upload
 run: all
 	stty -F $(ARDUINO_PORT) $(CONSOLE_BAUDRATE)
 	make reset
-	echo -en "R" > $(ARDUINO_PORT)
-	sleep 0.5
+	#echo -en "R" > $(ARDUINO_PORT)
+	#sleep 0.5
 	make raw_upload
-	#make con
-	../console/console.py
+	make con
 
 tcp: all
 	#stty -F $(ARDUINO_PORT) $(CONSOLE_BAUDRATE)

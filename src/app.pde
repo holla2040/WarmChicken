@@ -2,7 +2,7 @@
 #include "WarmDirt.h"
 #include "PID_v1.h"
 
-#define STATUSUPDATEINVTERVAL   30000
+#define STATUSUPDATEINVTERVAL   10000
 #define ACTIVITYUPDATEINVTERVAL 500
 
 int lightstate;
@@ -64,7 +64,7 @@ void reset() {
 
 void setup() {                
     Serial.begin(57600);
-    wd.sendPacketKeyValue(address,KV,"/data/setup","1");
+    wd.sendStomp(address,KV,"/data/setup","1");
     wd.setTemperatureSetPoint(settemp,1);
     lightstate = STATELIGHTOFF;
     pdpid.SetOutputLimits(50,65);
@@ -218,55 +218,29 @@ void statusLoop() {
     }
 
     if (now > nextIdleStatusUpdate) {
-        hd  = wd.getHeatedDirtTemperature();
-        pd  = wd.getPottedDirtTemperature();
         bi  = wd.getBoxInteriorTemperature();
-        be  = wd.getBoxExteriorTemperature();
-        ot  = wd.getAux0Temperature();
+        ot  = wd.getBoxExteriorTemperature();
         lc  = wd.getLoadACCurrent();
-//      hum = wd.getDHTHumidity();
 
         sprintf(buffer,"%ld",now);
-        wd.sendPacketKeyValue(address,KV,"/data/uptime",buffer);
+        wd.sendStomp(address,KV,"/data/uptime",buffer);
 
         ftoa(buffer,wd.getTemperatureSetPoint(),2);
-        wd.sendPacketKeyValue(address,KV,"/data/temperaturesetpoint",buffer);
-        delay(100);
-
-        ftoa(buffer,hd,2);
-        wd.sendPacketKeyValue(address,KV,"/data/temperatureheateddirt",buffer);
-        delay(100);
-
-        ftoa(buffer,pd,2);
-        wd.sendPacketKeyValue(address,KV,"/data/temperaturepotteddirt",buffer);
-        delay(100);
+        wd.sendStomp(address,KV,"/data/temperaturesetpoint",buffer);
 
         ftoa(buffer,bi,2);
-        wd.sendPacketKeyValue(address,KV,"/data/temperatureboxinterior",buffer);
-        delay(100);
-
-        ftoa(buffer,be,2);
-        wd.sendPacketKeyValue(address,KV,"/data/temperatureboxexterior",buffer);
-        delay(100);
+        wd.sendStomp(address,KV,"/data/temperatureboxinterior",buffer);
 
         ftoa(buffer,ot,2);
-        wd.sendPacketKeyValue(address,KV,"/data/temperatureoutside",buffer);
-        delay(100);
-
+        wd.sendStomp(address,KV,"/data/temperatureoutside",buffer);
 
         sprintf(buffer,"%d",wd.getLightSensor());
-        wd.sendPacketKeyValue(address,KV,"/data/lightlevel",buffer);
-        delay(100);
-
-
-        sprintf(buffer,"%d",wd.getLidSwitchClosed());
-        wd.sendPacketKeyValue(address,KV, "/data/lidclosed",buffer);
-        delay(100);
+        wd.sendStomp(address,KV,"/data/lightlevel",buffer);
 
         if ((lidstate == LIDSTATEMOVINGUP) || (lidstate == LIDSTATEMOVINGDOWN)) {
             temp = lidMovingTimeout - millis();
             sprintf(buffer,"%ld", temp);
-            wd.sendPacketKeyValue(address,KV,"/data/lidmovingtimeout",buffer);
+            wd.sendStomp(address,KV,"/data/lidmovingtimeout",buffer);
             delay(100);
         }
 
@@ -284,65 +258,60 @@ void statusLoop() {
                 sprintf(buffer,"closing %ds",temp/1000);
                 break;
         }
-        wd.sendPacketKeyValue(address,KV,"/data/lidstate",buffer);
+        wd.sendStomp(address,KV,"/data/lidstate",buffer);
         delay(100);
         
-        sprintf(buffer,"%d",wd.bencodercount);
-        wd.sendPacketKeyValue(address,KV, "/data/lidencodercount",buffer);
-        delay(100);
-
-
         sprintf(buffer,"%d",speedB);
-        wd.sendPacketKeyValue(address,KV,"/data/lidmotorspeed",buffer);
+        wd.sendStomp(address,KV,"/data/lidmotorspeed",buffer);
         delay(100);
 
         sprintf(buffer,"%d",wd.getLoad0On());
-        wd.sendPacketKeyValue(address,KV,"/data/load0on",buffer);
+        wd.sendStomp(address,KV,"/data/load0on",buffer);
         delay(100);
 
         sprintf(buffer,"%d",wd.getLoad1On());
-        wd.sendPacketKeyValue(address,KV,"/data/load1on",buffer);
+        wd.sendStomp(address,KV,"/data/load1on",buffer);
         delay(100);
 
         ftoa(buffer,lc,1);
-        wd.sendPacketKeyValue(address,KV,"/data/loadcurrent",buffer);
+        wd.sendStomp(address,KV,"/data/loadcurrent",buffer);
         delay(100);
 
         ftoa(buffer,wd.getPIDOutput(),2);
-        wd.sendPacketKeyValue(address,KV,"/data/pidoutput",buffer);
+        wd.sendStomp(address,KV,"/data/pidoutput",buffer);
         delay(100);
 
 /*
         ftoa(buffer,pid.ppart,2);
-        wd.sendPacketKeyValue(address,KV,"/data/pidp",buffer);
+        wd.sendStomp(address,KV,"/data/pidp",buffer);
         delay(100);
 
         ftoa(buffer,pid.ipart,2);
-        wd.sendPacketKeyValue(address,KV,"/data/pidi",buffer);
+        wd.sendStomp(address,KV,"/data/pidi",buffer);
         delay(100);
 
         ftoa(buffer,pid.dpart,2);
-        wd.sendPacketKeyValue(address,KV,"/data/pidd",buffer);
+        wd.sendStomp(address,KV,"/data/pidd",buffer);
         delay(100);
 
         ftoa(buffer,pdpidoutput,2);
-        wd.sendPacketKeyValue(address,KV,"/data/pdpidoutput",buffer);
+        wd.sendStomp(address,KV,"/data/pdpidoutput",buffer);
         delay(100);
 
         ftoa(buffer,pdpid.ppart,2);
-        wd.sendPacketKeyValue(address,KV,"/data/pdpidp",buffer);
+        wd.sendStomp(address,KV,"/data/pdpidp",buffer);
         delay(100);
 
         ftoa(buffer,pdpid.ipart,2);
-        wd.sendPacketKeyValue(address,KV,"/data/pdpidi",buffer);
+        wd.sendStomp(address,KV,"/data/pdpidi",buffer);
         delay(100);
 
         ftoa(buffer,pdpid.ipartraw,2);
-        wd.sendPacketKeyValue(address,KV,"/data/pdpidiraw",buffer);
+        wd.sendStomp(address,KV,"/data/pdpidiraw",buffer);
         delay(100);
 
         ftoa(buffer,pdpid.dpart,2);
-        wd.sendPacketKeyValue(address,KV,"/data/pdpidd",buffer);
+        wd.sendStomp(address,KV,"/data/pdpidd",buffer);
         delay(100);
 */
 
@@ -360,7 +329,7 @@ void statusLoop() {
                 sprintf(buffer,"sunlight %d",wd.getLightSensor());
                 break;
         }
-        wd.sendPacketKeyValue(address,KV,"/data/lightstate",buffer);
+        wd.sendStomp(address,KV,"/data/lightstate",buffer);
         delay(100);
 
 
@@ -368,13 +337,13 @@ void statusLoop() {
 
 /*
         ftoa(buffer,hum,1);
-        wd.sendPacketKeyValue(address,KV,"/data/humidity",buffer);
+        wd.sendStomp(address,KV,"/data/humidity",buffer);
 
         sprintf(buffer,"%d",speedA);
-        wd.sendPacketKeyValue(address,KV,"/data/motoraspeed",buffer);
+        wd.sendStomp(address,KV,"/data/motoraspeed",buffer);
 
         sprintf(buffer,"%d",speedB);
-        wd.sendPacketKeyValue(address,KV,"/data/motorbspeed",buffer);
+        wd.sendStomp(address,KV,"/data/motorbspeed",buffer);
 */
 
 

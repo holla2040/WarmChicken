@@ -88,6 +88,7 @@ class WarmDirt {
         void        sendString(char *str);
         void        sendPacket(uint8_t address, char type, char *str);
         void        sendPacketKeyValue(uint8_t address, char type, char *key, char *value);
+        void        sendStomp(uint8_t address, char type, char *key, char *value);
         void        loop();
         void        temperatureLoop();
         void        setTemperatureControl(boolean value);

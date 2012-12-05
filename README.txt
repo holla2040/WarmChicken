@@ -11,3 +11,5 @@ b. Close the door at night if 2 chickens are resting on platform
 c. Control interior temperature
 d. Control interior lighting to provide more than 8 hours of light/day
 
+
+This project uses STOMP protocol over RN-XV (Microchip RN171 Wifi client). 
