@@ -1,0 +1,15 @@
+RN-XV config
+factory RESET
+set wlan ssid myssid
+set wlan phrase myphrase
+set uart baud 57600 
+set sys prinlvl 0x00
+set ip address 192.168.0.110
+set ip dhcp 0
+set ip localport 2000
+set comm open 0
+set comm close 0
+set comm remote 0
+set wlan join 1
+save
+reboot

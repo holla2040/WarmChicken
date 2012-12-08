@@ -17,8 +17,7 @@ AVRDUDE                 = avrdude
                                             
 F_CPU                   = 16000000
 ARDUINO_PORT            = /dev/$(DEVICE_FILE)
-#TCP_PORT                = net:192.168.0.10:1055
-TCP_PORT                = net:10.210.211.249:1055
+TCP_PORT                = net:192.168.0.110:2000
                                             
 ARDUINO_LIBS            = Stepper
                                             
@@ -36,11 +35,8 @@ run: all
 	make con
 
 tcp: all
-	#stty -F $(ARDUINO_PORT) $(CONSOLE_BAUDRATE)
-	#echo -en "R" > $(ARDUINO_PORT)
-	#echo -n 'R0 ' | nc 192.168.0.10 1055
+	echo -n 'R0 ' | nc 192.168.0.110 2000
 	make tcp_upload
-	make con
 
 con:
 	rm -rf /var/lock/LCK..$(DEVICE_FILE)

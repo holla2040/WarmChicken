@@ -11,7 +11,6 @@
 #define DHTPIN  9
 #define DHTTYPE DHT11 
 
-
 enum {EETC,EETSP,EETH};
 
 DHT dht(DHTPIN, DHTTYPE);

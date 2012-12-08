@@ -26,13 +26,6 @@ uint32_t lidMovingTimeout;
 
 uint32_t lightUpdate;
 
-extern PID pid;
-double settemp = 55.0;
-
-double pdpidsetpoint, pdpidinput, pdpidoutput;
-PID pdpid(&pdpidinput, &pdpidoutput, &pdpidsetpoint,5,0.001,0.01,DIRECT);
-
-
 char *ftoa(char *a, double f, int precision) {
   long p[] = {0,10,100,1000,10000,100000,1000000,10000000,100000000};
 
@@ -41,8 +34,8 @@ char *ftoa(char *a, double f, int precision) {
   itoa(heiltal, a, 10);
   while (*a != '\0') a++;
   *a++ = '.';
-  long desimal = abs((long)((f - heiltal) * p[precision]));
-  itoa(desimal, a, 10);
+  long decimal = abs((long)((f - heiltal) * p[precision]));
+  itoa(decimal, a, 10);
   return ret;
 }
 
@@ -51,9 +44,6 @@ uint32_t nextActivityUpdate;
 
 int8_t   speedA = 0;
 int8_t   speedB = 0;
-
-char     address = '1';
-
 
 WarmDirt wd;
 
@@ -64,15 +54,10 @@ void reset() {
 
 void setup() {                
     Serial.begin(57600);
-    wd.sendStomp(address,KV,"/data/setup","1");
-    wd.setTemperatureSetPoint(settemp,1);
+    Serial.println("WarmChicken begin");
     lightstate = STATELIGHTOFF;
-    pdpid.SetOutputLimits(50,65);
-    pdpid.SetMode(AUTOMATIC);
-    pdpidsetpoint = 48.0;
-    lidstate = LIDSTATEDOWN;
+    lidstate   = LIDSTATEDOWN;
 }
-
 
 
 void commProcess(int c) {
@@ -82,16 +67,6 @@ void commProcess(int c) {
             break;
         case 'R':
             reset();
-            break;
-        case '5':
-            settemp -= 1;
-            wd.setTemperatureSetPoint(settemp,1);
-            nextIdleStatusUpdate = 0;
-            break;
-        case '6':
-            settemp += 1;
-            wd.setTemperatureSetPoint(settemp,1);
-            nextIdleStatusUpdate = 0;
             break;
         case 'a':
             Serial.print("a");
@@ -165,36 +140,17 @@ void commProcess(int c) {
                 reset();
             }
             break;
-        case 'w':
-            int i;
-            Serial.println("stepper backward");
-            wd.stepperSpeed(10);
-            wd.stepperEnable();
-            delay(10);
-            wd.stepperStep(100);
-            /*
-            for (i = 0; i < 10; i++) { 
-                wd.stepperStep(1);
-                delay(10);
-            }
-            */
-            delay(10);
-            wd.stepperDisable();
-            break;
-        case 'r':
-            Serial.println("stepper forward");
-            wd.stepperSpeed(10);
-            wd.stepperEnable();
-            delay(10);
-            wd.stepperStep(100);
-            delay(10);
-            wd.stepperDisable();
-            break;
-        case 'd':
+        case 'D':
             speedB = -100;
             speedB = wd.motorBSpeed(speedB);
             lidMovingTimeout = millis() + LIDMOVINGTIME;
             lidstate = LIDSTATEMOVINGDOWN;
+            break;
+        case 'U':
+            speedB = 100;
+            speedB = wd.motorBSpeed(speedB);
+            lidMovingTimeout = millis() + LIDMOVINGTIME;
+            lidstate = LIDSTATEMOVINGUP;
             break;
    }
 }
@@ -209,111 +165,49 @@ void commLoop() {
 
 void statusLoop() {
     char buffer[30];
-    uint32_t temp;
     uint32_t now = millis();
-    double hd,pd,bi,be,lc,hum,ot;
+    double v;
+    int i;
     if (now > nextActivityUpdate) {
         wd.activityToggle();
         nextActivityUpdate = now + ACTIVITYUPDATEINVTERVAL;
     }
 
     if (now > nextIdleStatusUpdate) {
-        bi  = wd.getBoxInteriorTemperature();
-        ot  = wd.getBoxExteriorTemperature();
-        lc  = wd.getLoadACCurrent();
+        Serial.print(now);
+        Serial.print("|");
 
-        sprintf(buffer,"%ld",now);
-        wd.sendStomp(address,KV,"/data/uptime",buffer);
+        v  = wd.getBoxInteriorTemperature();
+        Serial.print(v,2);
+        Serial.print("|");
 
-        ftoa(buffer,wd.getTemperatureSetPoint(),2);
-        wd.sendStomp(address,KV,"/data/temperaturesetpoint",buffer);
+        v  = wd.getBoxExteriorTemperature();
+        Serial.print(v,2);
+        Serial.print("|");
 
-        ftoa(buffer,bi,2);
-        wd.sendStomp(address,KV,"/data/temperatureboxinterior",buffer);
-
-        ftoa(buffer,ot,2);
-        wd.sendStomp(address,KV,"/data/temperatureoutside",buffer);
-
-        sprintf(buffer,"%d",wd.getLightSensor());
-        wd.sendStomp(address,KV,"/data/lightlevel",buffer);
-
-        if ((lidstate == LIDSTATEMOVINGUP) || (lidstate == LIDSTATEMOVINGDOWN)) {
-            temp = lidMovingTimeout - millis();
-            sprintf(buffer,"%ld", temp);
-            wd.sendStomp(address,KV,"/data/lidmovingtimeout",buffer);
-            delay(100);
-        }
+        v  = wd.getLightSensor();
+        Serial.print((int)v);
+        Serial.print("|");
 
         switch (lidstate) {
             case LIDSTATEDOWN:
-                sprintf(buffer,"closed");
+                Serial.print("closed");
                 break;
             case LIDSTATEMOVINGUP:
-                sprintf(buffer,"opening %ds",temp/1000);
+                Serial.print("opening");
                 break;
             case LIDSTATEUP:
-                sprintf(buffer,"open");
+                Serial.print("open");
                 break;
             case LIDSTATEMOVINGDOWN:
-                sprintf(buffer,"closing %ds",temp/1000);
+                Serial.print("closing");
                 break;
         }
-        wd.sendStomp(address,KV,"/data/lidstate",buffer);
-        delay(100);
-        
-        sprintf(buffer,"%d",speedB);
-        wd.sendStomp(address,KV,"/data/lidmotorspeed",buffer);
-        delay(100);
 
-        sprintf(buffer,"%d",wd.getLoad0On());
-        wd.sendStomp(address,KV,"/data/load0on",buffer);
-        delay(100);
-
-        sprintf(buffer,"%d",wd.getLoad1On());
-        wd.sendStomp(address,KV,"/data/load1on",buffer);
-        delay(100);
-
-        ftoa(buffer,lc,1);
-        wd.sendStomp(address,KV,"/data/loadcurrent",buffer);
-        delay(100);
-
-        ftoa(buffer,wd.getPIDOutput(),2);
-        wd.sendStomp(address,KV,"/data/pidoutput",buffer);
-        delay(100);
-
-/*
-        ftoa(buffer,pid.ppart,2);
-        wd.sendStomp(address,KV,"/data/pidp",buffer);
-        delay(100);
-
-        ftoa(buffer,pid.ipart,2);
-        wd.sendStomp(address,KV,"/data/pidi",buffer);
-        delay(100);
-
-        ftoa(buffer,pid.dpart,2);
-        wd.sendStomp(address,KV,"/data/pidd",buffer);
-        delay(100);
-
-        ftoa(buffer,pdpidoutput,2);
-        wd.sendStomp(address,KV,"/data/pdpidoutput",buffer);
-        delay(100);
-
-        ftoa(buffer,pdpid.ppart,2);
-        wd.sendStomp(address,KV,"/data/pdpidp",buffer);
-        delay(100);
-
-        ftoa(buffer,pdpid.ipart,2);
-        wd.sendStomp(address,KV,"/data/pdpidi",buffer);
-        delay(100);
-
-        ftoa(buffer,pdpid.ipartraw,2);
-        wd.sendStomp(address,KV,"/data/pdpidiraw",buffer);
-        delay(100);
-
-        ftoa(buffer,pdpid.dpart,2);
-        wd.sendStomp(address,KV,"/data/pdpidd",buffer);
-        delay(100);
-*/
+        Serial.print("|");
+        i = wd.getLoad0On();
+        Serial.print(i,DEC);
+        Serial.print("|");
 
         switch (lightstate) {
             case STATELIGHTON:
@@ -329,23 +223,10 @@ void statusLoop() {
                 sprintf(buffer,"sunlight %d",wd.getLightSensor());
                 break;
         }
-        wd.sendStomp(address,KV,"/data/lightstate",buffer);
-        delay(100);
+        Serial.print(buffer);
 
 
-
-
-/*
-        ftoa(buffer,hum,1);
-        wd.sendStomp(address,KV,"/data/humidity",buffer);
-
-        sprintf(buffer,"%d",speedA);
-        wd.sendStomp(address,KV,"/data/motoraspeed",buffer);
-
-        sprintf(buffer,"%d",speedB);
-        wd.sendStomp(address,KV,"/data/motorbspeed",buffer);
-*/
-
+        Serial.println();
 
         nextIdleStatusUpdate = millis() + STATUSUPDATEINVTERVAL;
     }
@@ -371,12 +252,6 @@ void lightLoop() {
             lightstate = STATELIGHTOFF;
         }
     }
-}
-
-void temperatureLoop() {
-    pdpidinput = wd.getPottedDirtTemperature();
-    pdpid.Compute();
-    wd.setTemperatureSetPoint(pdpidoutput,1);
 }
 
 void lidLoop() {
@@ -418,8 +293,6 @@ void lidLoop() {
 void loop() {
     statusLoop();
     commLoop();
-    wd.loop();
     lightLoop();
-    temperatureLoop();
     lidLoop();
 }

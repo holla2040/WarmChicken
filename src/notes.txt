@@ -1,0 +1,18 @@
+factory RESET
+set wlan ssid xxxxx
+set wlan phrase xxxx
+set ip tcp-mode 0x00
+set dns name host
+set ip host 0
+set dns backup althost
+set ip backup 0
+set ip remote portnumber
+set sys iofunc 0x70
+set sys prinlvl 0x00
+set comm open 0
+set comm close 0
+set comm remote 0
+set uart baud 57600
+set wlan join 1
+save
+reboot
