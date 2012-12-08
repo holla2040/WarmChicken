@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include "WarmDirt.h"
-#include "PID_v1.h"
 
 #define STATUSUPDATEINVTERVAL   10000
 #define ACTIVITYUPDATEINVTERVAL 500
@@ -14,15 +13,15 @@ int lightstate;
 #define STATELIGHTTEMPON            't'
 #define STATELIGHTTEMPONDURATION    600000L
 
-#define LIDUPTHRESHOLD              44.0 
-#define LIDDOWNTHRESHOLD            42.5
-#define LIDMOVINGTIME               400000L
-#define LIDSTATEDOWN                'd'
-#define LIDSTATEMOVINGDOWN          'v'
-#define LIDSTATEMOVINGUP            '^'
-#define LIDSTATEUP                  'u'
-uint8_t lidstate;
-uint32_t lidMovingTimeout;
+#define DOOROPENTHRESHOLD            200
+#define DOORCLOSEHRESHOLD            800
+#define DOORMOVINGTIME               30000L
+#define DOOR_STATE_OPENING          '^'
+#define DOOR_STATE_CLOSING          'v'
+#define DOOR_STATE_OPEN             'o'
+#define DOOR_STATE_CLOSED           'c'
+uint8_t doorState;
+uint32_t timeoutDoorMoving;
 
 uint32_t lightUpdate;
 
@@ -56,7 +55,7 @@ void setup() {
     Serial.begin(57600);
     Serial.println("WarmChicken begin");
     lightstate = STATELIGHTOFF;
-    lidstate   = LIDSTATEDOWN;
+    doorState   = DOOR_STATE_CLOSED;
 }
 
 
@@ -140,17 +139,17 @@ void commProcess(int c) {
                 reset();
             }
             break;
-        case 'D':
+        case 'O':
             speedB = -100;
             speedB = wd.motorBSpeed(speedB);
-            lidMovingTimeout = millis() + LIDMOVINGTIME;
-            lidstate = LIDSTATEMOVINGDOWN;
+            timeoutDoorMoving = millis() + DOORMOVINGTIME;
+            doorState = DOOR_STATE_OPENING;
             break;
-        case 'U':
+        case 'C':
             speedB = 100;
             speedB = wd.motorBSpeed(speedB);
-            lidMovingTimeout = millis() + LIDMOVINGTIME;
-            lidstate = LIDSTATEMOVINGUP;
+            timeoutDoorMoving = millis() + DOORMOVINGTIME;
+            doorState = DOOR_STATE_CLOSING;
             break;
    }
 }
@@ -189,17 +188,17 @@ void statusLoop() {
         Serial.print((int)v);
         Serial.print("|");
 
-        switch (lidstate) {
-            case LIDSTATEDOWN:
+        switch (doorState) {
+            case DOOR_STATE_CLOSED:
                 Serial.print("closed");
                 break;
-            case LIDSTATEMOVINGUP:
+            case DOOR_STATE_OPENING:
                 Serial.print("opening");
                 break;
-            case LIDSTATEUP:
+            case DOOR_STATE_OPEN:
                 Serial.print("open");
                 break;
-            case LIDSTATEMOVINGDOWN:
+            case DOOR_STATE_CLOSING:
                 Serial.print("closing");
                 break;
         }
@@ -254,38 +253,39 @@ void lightLoop() {
     }
 }
 
-void lidLoop() {
-    return;
-    double be  = wd.getBoxExteriorTemperature();
-    switch (lidstate) {
-        case LIDSTATEDOWN:
-            if ( be > LIDUPTHRESHOLD ) {
+void doorLoop() {
+    int l = wd.getLightSensor();
+    switch (doorState) {
+        case DOOR_STATE_CLOSED:
+            if ( l > DOOROPENTHRESHOLD ) {
                 speedB = 100;
                 speedB = wd.motorBSpeed(speedB);
-                lidMovingTimeout = millis() + LIDMOVINGTIME;
-                lidstate = LIDSTATEMOVINGUP;
+                timeoutDoorMoving = millis() + DOORMOVINGTIME;
+                doorState = DOOR_STATE_OPENING;
             }
             break;
-        case LIDSTATEMOVINGUP:
-            if (millis() > lidMovingTimeout) {
+        case DOOR_STATE_OPENING:
+            if (millis() > timeoutDoorMoving) {
                 speedB = 0;
                 speedB = wd.motorBSpeed(speedB);
-                lidstate = LIDSTATEUP;
+                doorState = DOOR_STATE_OPEN;
             }
             break;
-        case LIDSTATEUP:
-            if ( be < LIDDOWNTHRESHOLD ) {
+        case DOOR_STATE_OPEN:
+/*
+            if ( l < DOORCLOSETHRESHOLD ) {
                 speedB = -100;
                 speedB = wd.motorBSpeed(speedB);
-                lidMovingTimeout = millis() + LIDMOVINGTIME;
-                lidstate = LIDSTATEMOVINGDOWN;
+                timeoutDoorMoving = millis() + DOORMOVINGTIME;
+                doorState = DOOR_STATE_CLOSING;
             }
+*/
             break;
-        case LIDSTATEMOVINGDOWN:
-            if (millis() > lidMovingTimeout) {
+        case DOOR_STATE_CLOSING:
+            if (millis() > timeoutDoorMoving) {
                 speedB = 0;
                 speedB = wd.motorBSpeed(speedB);
-                lidstate = LIDSTATEDOWN;
+                doorState = DOOR_STATE_CLOSED;
             }
             break;
     }
@@ -295,5 +295,5 @@ void loop() {
     statusLoop();
     commLoop();
     lightLoop();
-    lidLoop();
+    doorLoop();
 }
