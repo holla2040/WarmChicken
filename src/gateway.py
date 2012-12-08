@@ -48,6 +48,14 @@ def processkeyboardchar(c):
         sock.close()
         os.system("make tcp")
         running = 0
+    if c == 'T':
+        t = "T%d"%(int(time.time()) + 60*60*-7)
+        sock.send(t)
+        #for l in t:
+            #sock.send(l)
+            #sys.stdout.write(l)
+            #sys.stdout.flush()
+            #time.sleep(0.5)
     if c:
         sock.send(c)
 

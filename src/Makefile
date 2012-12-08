@@ -26,7 +26,7 @@ include ./Arduino.mk
 runold:	reset all raw_upload
 	make con
 
-run: all
+runserial: all
 	stty -F $(ARDUINO_PORT) $(CONSOLE_BAUDRATE)
 	make reset
 	#echo -en "R" > $(ARDUINO_PORT)
@@ -34,7 +34,7 @@ run: all
 	make raw_upload
 	make con
 
-tcp: all
+run: all
 	echo -n 'R0 ' | nc 192.168.0.110 2000
 	make tcp_upload
 

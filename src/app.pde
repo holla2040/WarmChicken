@@ -1,6 +1,16 @@
 #include <stdint.h>
 #include "WarmDirt.h"
 
+#include "Time.h"
+#define TIME_MSG_LEN  11
+
+/* notes
+    uses Time functions from arduino, http://playground.arduino.cc/Code/Time 
+    T1354928747
+    TZ_adjust=-7;  echo T$(($(date +%s)+60*60*$TZ_adjust)) 
+*/
+
+
 #define STATUSUPDATEINVTERVAL   10000
 #define ACTIVITYUPDATEINVTERVAL 500
 
@@ -24,6 +34,21 @@ uint8_t doorState;
 uint32_t timeoutDoorMoving;
 
 uint32_t lightUpdate;
+
+void printDigits(int digits){
+  // utility function for digital clock display: prints preceding colon and leading 0
+  Serial.print(":");
+  if(digits < 10)
+    Serial.print('0');
+  Serial.print(digits);
+}
+
+void timePrint(){
+  Serial.print(hour());
+  printDigits(minute());
+  printDigits(second());
+}
+
 
 char *ftoa(char *a, double f, int precision) {
   long p[] = {0,10,100,1000,10000,100000,1000000,10000000,100000000};
@@ -56,6 +81,24 @@ void setup() {
     Serial.println("WarmChicken begin");
     lightstate = STATELIGHTOFF;
     doorState   = DOOR_STATE_CLOSED;
+}
+
+void lightOn() {
+    int i;
+    for (i = 0; i < 101; i++) {
+        speedA = i;
+        speedA = wd.motorASpeed(speedA);
+        delay(100);
+    }
+}
+
+void lightOff() {
+    int i;
+    for (i = 100; i >= 0; i--) {
+        speedA = i;
+        speedA = wd.motorASpeed(speedA);
+        delay(100);
+    }
 }
 
 
@@ -151,7 +194,19 @@ void commProcess(int c) {
             timeoutDoorMoving = millis() + DOORMOVINGTIME;
             doorState = DOOR_STATE_CLOSING;
             break;
-   }
+        case 'T':
+            time_t pctime = 0;
+            for(int i=0; i < TIME_MSG_LEN; i++){   
+                while (!Serial.available());
+                c = Serial.read();          
+                if( c >= '0' && c <= '9'){   
+                    pctime = (10 * pctime) + (c - '0') ; // convert digits to a number    
+                }
+            }   
+            //Serial.println(pctime,DEC);
+            setTime(pctime);   
+            break;
+    }
 }
 
 void commLoop() {
@@ -173,7 +228,8 @@ void statusLoop() {
     }
 
     if (now > nextIdleStatusUpdate) {
-        Serial.print(now);
+
+        timePrint();
         Serial.print("|");
 
         v  = wd.getBoxInteriorTemperature();
