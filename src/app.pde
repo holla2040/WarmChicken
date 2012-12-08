@@ -255,6 +255,7 @@ void lightLoop() {
 }
 
 void lidLoop() {
+    return;
     double be  = wd.getBoxExteriorTemperature();
     switch (lidstate) {
         case LIDSTATEDOWN:
