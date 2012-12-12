@@ -2,12 +2,33 @@
 import serial, time, sys, termios, os, traceback
 import time, re, struct, socket
 import socket
+import BaseHTTPServer, SimpleHTTPServer, cgi
 
+PORT=8000
 WARMCHICKENHOST="192.168.0.110"
 WARMCHICKENPORT=2000
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.settimeout(3)
+
+class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
+    def do_GET(self) :
+        self.send_response(200)
+        self.send_header("content-type","text/html")
+        self.end_headers()
+        self.wfile.write("<html><body>"+status+"</body></html>")
+#     def do_POST(self):
+#        len = int(self.headers['content-length'])
+#        body = self.rfile.read(len)
+#        #params = dict(cgi.parse_qsl(body))
+#        print body
+#        #print params
+#        self.send_response(200)
+#        self.end_headers()
+
+http=BaseHTTPServer.HTTPServer(('',PORT),ReqHandler)
+print 'port=%d'%PORT
+http.socket.settimeout(0.01)
 
 def connect(sock):
     try:
@@ -40,6 +61,11 @@ line = ""
 
 running = 1
 
+def sendTime():
+    global sock
+    t = "T%d"%(int(time.time()) + 60*60*-7)
+    sock.send(t)
+
 def processkeyboardchar(c):
     global running, sock
     if c == 'q':
@@ -49,17 +75,16 @@ def processkeyboardchar(c):
         os.system("make tcp")
         running = 0
     if c == 'T':
-        t = "T%d"%(int(time.time()) + 60*60*-7)
-        sock.send(t)
-        #for l in t:
-            #sock.send(l)
-            #sys.stdout.write(l)
-            #sys.stdout.flush()
-            #time.sleep(0.5)
+        sendTime()
     if c:
         sock.send(c)
 
+sendTime()
+sock.send('s')
+
 try:
+    status = ""
+    temp = ""
     while running == 1:
         c = getchar() # keyboard
         if c:
@@ -67,12 +92,21 @@ try:
         try:
             c = sock.recv(1)
             if len(c):
-                sys.stdout.write(c)
-                sys.stdout.flush()
+                #sys.stdout.write(c)
+                #sys.stdout.flush()
+                if c == '\n':
+                    status = temp.strip()
+                    temp = ""
+                    print status
+                else:
+                    temp += c
         except socket.timeout:
             pass
+        http.handle_request()
+
 except:
     traceback.print_exc(file=sys.stdout)
 
 
 termios.tcsetattr(fd, termios.TCSAFLUSH, old)
+

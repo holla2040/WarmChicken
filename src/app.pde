@@ -237,11 +237,11 @@ void statusLoop() {
         timePrint();
         Serial.print("|");
 
-        v  = wd.getBoxInteriorTemperature();
+        v  = wd.getBoxInteriorTemperature() - 10.0;
         Serial.print(v,2);
         Serial.print("|");
 
-        v  = wd.getBoxExteriorTemperature();
+        v  = wd.getBoxExteriorTemperature() - 10.0;
         Serial.print(v,2);
         Serial.print("|");
 
