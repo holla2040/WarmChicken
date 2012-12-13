@@ -33,7 +33,6 @@ uint32_t lightUpdate;
 
 void printDigits(int digits){
   // utility function for digital clock display: prints preceding colon and leading 0
-  Serial.print(":");
   if(digits < 10)
     Serial.print('0');
   Serial.print(digits);
@@ -41,7 +40,9 @@ void printDigits(int digits){
 
 void timePrint(){
   printDigits(hour());
+  Serial.print(":");
   printDigits(minute());
+  Serial.print(":");
   printDigits(second());
 }
 
