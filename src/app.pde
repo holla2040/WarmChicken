@@ -40,7 +40,7 @@ void printDigits(int digits){
 }
 
 void timePrint(){
-  Serial.print(hour());
+  printDigits(hour());
   printDigits(minute());
   printDigits(second());
 }
