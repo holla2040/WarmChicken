@@ -178,6 +178,7 @@ void commProcess(int c) {
             Serial.print("a = ");
             Serial.println(speedA);
             break;
+        case 'S':
         case ' ':
             Serial.println("full stop");
             speedA = 0;
