@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import serial, time, sys, termios, os, traceback
+import serial, time, sys, termios, os, traceback, threading, urllib
 import time, re, struct, socket
 import socket
 import BaseHTTPServer, SimpleHTTPServer, cgi
@@ -9,25 +9,13 @@ WARMCHICKENHOST="192.168.0.110"
 WARMCHICKENPORT=2000
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.settimeout(3)
+sock.settimeout(.1)
 
-def processkeyboardchar(c):
-    global running, sock
-    print "sending",c
-    if c == 'q':
-        running = 0
-    if c == 'p':
-        sock.close()
-        os.system("make tcp")
-        running = 0
-    if c == 'T':
-        sendTime()
-    if c:
-        sock.send(c)
+running = 1
 
 class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
     def do_GET(self) :
-        #print 77777,self.path
+        print 77777,self.path
         if self.path.count('favicon'):
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
         self.send_response(200)
@@ -35,21 +23,22 @@ class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
         self.end_headers()
         self.wfile.write("<html>")
         self.wfile.write('<head>')
-        self.wfile.write('<meta http-equiv="refresh" content="5">')
+        self.wfile.write('<meta http-equiv="refresh" content="15">')
         self.wfile.write('<META HTTP-EQUIV="Pragma" CONTENT="no-cache"><META HTTP-EQUIV="Expires" CONTENT="-1">')
-        self.wfile.write("<style>td { margin-left:auto; margin-right:auto;border: 1px;padding-right:10px; } input {width:100px}</style>")
+        #self.wfile.write("<style>body {width:100%} table,tr{font-size:180%; width:100%} td{border:1px solid black;} input{width:350px} td.l{border:1px solid red;} td.v{width:20%}</style>")
+        self.wfile.write("<style>body {width:100%}  table,td {padding-right:5px;font-size:220%; overflow: hidden; display: inline-block; white-space: nowrap; }input{width:400px} </style>")
         self.wfile.write('</head>')
         self.wfile.write("<b>WarmChicken</b>")
         self.wfile.write("<table>")
         d = status.split('|')
-        self.wfile.write("<tr><td>Time of Day</td><td>"+d[0]+"</td></tr>")
-        self.wfile.write("<tr><td>Temp Outside</td><td>"+d[1].split('.')[0]+"</td></tr>")
-        self.wfile.write("<tr><td>Temp Inside</td><td>"+d[2].split('.')[0]+"</td></tr>")
-        self.wfile.write("<tr><td>Door Status</td><td>"+d[4]+"</td></tr>")
+        self.wfile.write("<tr><td class='l'>Time of Day</td><td class='v'>"+d[0]+"</td></tr>")
+        self.wfile.write("<tr><td class='l'>Temp Outside</td><td class='v'>"+d[2].split('.')[0]+"&deg;F</td></tr>")
+        self.wfile.write("<tr><td class='l'>Temp Inside</td><td class='v'>"+d[1].split('.')[0]+"&deg;F</td></tr>")
+        self.wfile.write("<tr><td class='l'>Door Status</td><td class='v'>"+d[4]+"</td></tr>")
 
         v = str(int(100*(float(d[3])/1000.0)))
-        self.wfile.write("<tr><td>Light Level Outdoor</td><td>"+v+"</td></tr>")
-        self.wfile.write("<tr><td>Light Level Indoor</td><td>"+d[5]+"</td></tr>")
+        self.wfile.write("<tr><td class='l'>Light Outside</td><td class='v'>"+v+"</td></tr>")
+        self.wfile.write("<tr><td class='l'>Light Inside</td><td class='v'>"+d[5]+"</td></tr>")
         #self.wfile.write("<tr><td>Outdoor Light Status</td><td>"+d[5]+"</td></tr>")
 
         self.wfile.write("</table>")
@@ -59,9 +48,11 @@ class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
         self.wfile.write('<td><form action="/action" method="POST" ><input type="hidden" value="K" name="key"/><input type="submit" value="Light Off"/></form></td></tr>')
         self.wfile.write('<tr><td><form action="/action" method="POST" ><input type="hidden" value="O" name="key"/><input type="submit" value="Door Open"/></form></td>')
         self.wfile.write('<td><form action="/action" method="POST" ><input type="hidden" value="C" name="key"/><input type="submit" value="Door Close"/></form></td></tr>')
-        self.wfile.write('<tr><td><form action="/action" method="POST" ><input type="hidden" value="S" name="key"/><input type="submit" value="Full Stop"/></form></td></tr>')
+        self.wfile.write('<tr><td><form action="/action" method="POST" ><input type="hidden" value="S" name="key"/><input type="submit" value="E-Stop"/></form></td></tr>')
         self.wfile.write("</table>")
         self.wfile.write("</body></html>")
+        sys.stdout.write('1')
+        sys.stdout.flush()
 
     def do_POST(self):
         len = int(self.headers['content-length'])
@@ -71,19 +62,48 @@ class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
             processkeyboardchar(k)
             time.sleep(.1)
             processkeyboardchar('s')
-        self.send_response(301)
-        self.send_header("Location","/")
+        self.send_response(200)
+        self.send_header("content-type","text/html")
         self.end_headers()
+        self.wfile.write("<html>")
+        self.wfile.write('<head>')
+        self.wfile.write('<meta http-equiv="refresh" content=".5;url=/">')
 #        #params = dict(cgi.parse_qsl(body))
 #        print body
 #        #print params
 #        self.send_response(200)
 #        self.end_headers()
 
-http=BaseHTTPServer.HTTPServer(('',PORT),ReqHandler)
-print 'port=%d'%PORT
-http.socket.settimeout(0.01)
+class httpthread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.http=BaseHTTPServer.HTTPServer(('',PORT),ReqHandler)
+        self.http.socket.settimeout(0.01)
 
+    def run(self):
+        global running
+        print 'port=%d'%PORT
+        while running:
+            self.http.handle_request()
+
+httpserver = httpthread()
+httpserver.start()
+
+def processkeyboardchar(c):
+    global running, sock
+    print "sending",c
+    if c == 'q':
+        running = 0
+        urllib.urlopen("http://127.0.0.1:%d"%PORT).read()
+        time.sleep(.1)
+    if c == 'p':
+        sock.close()
+        os.system("make tcp")
+        running = 0
+    if c == 'T':
+        sendTime()
+    if c:
+        sock.send(c)
 
 def connect(sock):
     try:
@@ -114,8 +134,6 @@ termios.tcsendbreak(fd,0)
 
 line = ""
 
-running = 1
-
 def sendTime():
     global sock
     t = "T%d"%(int(time.time()) + 60*60*-7)
@@ -124,6 +142,7 @@ def sendTime():
 
 sendTime()
 sock.send('s')
+
 
 try:
     status = ""
@@ -145,7 +164,6 @@ try:
                     temp += c
         except socket.timeout:
             pass
-        http.handle_request()
 
 except:
     traceback.print_exc(file=sys.stdout)
