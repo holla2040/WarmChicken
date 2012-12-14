@@ -28,7 +28,7 @@ class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
         #self.wfile.write("<style>body {width:100%} table,tr{font-size:180%; width:100%} td{border:1px solid black;} input{width:350px} td.l{border:1px solid red;} td.v{width:20%}</style>")
         self.wfile.write("<style>body {width:100%}  table,td {padding-right:5px;font-size:220%; overflow: hidden; display: inline-block; white-space: nowrap; }input{width:400px} </style>")
         self.wfile.write('</head>')
-        self.wfile.write("<b>WarmChicken</b>")
+        self.wfile.write("<b>WarmChicken</b><br>")
         self.wfile.write("<table>")
         d = status.split('|')
         self.wfile.write("<tr><td class='l'>Time of Day</td><td class='v'>"+d[0]+"</td></tr>")
