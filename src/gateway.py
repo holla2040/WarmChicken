@@ -4,22 +4,75 @@ import time, re, struct, socket
 import socket
 import BaseHTTPServer, SimpleHTTPServer, cgi
 
-PORT=8000
+PORT=1234
 WARMCHICKENHOST="192.168.0.110"
 WARMCHICKENPORT=2000
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.settimeout(3)
 
+def processkeyboardchar(c):
+    global running, sock
+    print "sending",c
+    if c == 'q':
+        running = 0
+    if c == 'p':
+        sock.close()
+        os.system("make tcp")
+        running = 0
+    if c == 'T':
+        sendTime()
+    if c:
+        sock.send(c)
+
 class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
     def do_GET(self) :
+        #print 77777,self.path
+        if self.path.count('favicon'):
+            return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
         self.send_response(200)
         self.send_header("content-type","text/html")
         self.end_headers()
-        self.wfile.write("<html><body>"+status+"</body></html>")
-#     def do_POST(self):
-#        len = int(self.headers['content-length'])
-#        body = self.rfile.read(len)
+        self.wfile.write("<html>")
+        self.wfile.write('<head>')
+        self.wfile.write('<meta http-equiv="refresh" content="5">')
+        self.wfile.write('<META HTTP-EQUIV="Pragma" CONTENT="no-cache"><META HTTP-EQUIV="Expires" CONTENT="-1">')
+        self.wfile.write("<style>td { margin-left:auto; margin-right:auto;border: 1px;padding-right:10px; } input {width:100px}</style>")
+        self.wfile.write('</head>')
+        self.wfile.write("<b>WarmChicken</b>")
+        self.wfile.write("<table>")
+        d = status.split('|')
+        self.wfile.write("<tr><td>Time of Day</td><td>"+d[0]+"</td></tr>")
+        self.wfile.write("<tr><td>Temp Outside</td><td>"+d[1].split('.')[0]+"</td></tr>")
+        self.wfile.write("<tr><td>Temp Inside</td><td>"+d[2].split('.')[0]+"</td></tr>")
+        self.wfile.write("<tr><td>Door Status</td><td>"+d[4]+"</td></tr>")
+
+        v = str(int(100*(float(d[3])/1000.0)))
+        self.wfile.write("<tr><td>Light Level Outdoor</td><td>"+v+"</td></tr>")
+        self.wfile.write("<tr><td>Light Level Indoor</td><td>"+d[5]+"</td></tr>")
+        #self.wfile.write("<tr><td>Outdoor Light Status</td><td>"+d[5]+"</td></tr>")
+
+        self.wfile.write("</table>")
+        self.wfile.write("<table>")
+
+        self.wfile.write('<tr><td><form action="/action" method="POST"><input type="hidden" value="L" name="key"/><input type="submit" value="Light On"/></form></td>')
+        self.wfile.write('<td><form action="/action" method="POST" ><input type="hidden" value="K" name="key"/><input type="submit" value="Light Off"/></form></td></tr>')
+        self.wfile.write('<tr><td><form action="/action" method="POST" ><input type="hidden" value="O" name="key"/><input type="submit" value="Door Open"/></form></td>')
+        self.wfile.write('<td><form action="/action" method="POST" ><input type="hidden" value="C" name="key"/><input type="submit" value="Door Close"/></form></td></tr>')
+        self.wfile.write("</table>")
+        self.wfile.write("</body></html>")
+
+    def do_POST(self):
+        len = int(self.headers['content-length'])
+        body = self.rfile.read(len).strip()
+        if body.count("key="):
+            k = body.split('=')[1]
+            processkeyboardchar(k)
+            time.sleep(.1)
+            processkeyboardchar('s')
+        self.send_response(301)
+        self.send_header("Location","/")
+        self.end_headers()
 #        #params = dict(cgi.parse_qsl(body))
 #        print body
 #        #print params
@@ -29,6 +82,7 @@ class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
 http=BaseHTTPServer.HTTPServer(('',PORT),ReqHandler)
 print 'port=%d'%PORT
 http.socket.settimeout(0.01)
+
 
 def connect(sock):
     try:
@@ -66,18 +120,6 @@ def sendTime():
     t = "T%d"%(int(time.time()) + 60*60*-7)
     sock.send(t)
 
-def processkeyboardchar(c):
-    global running, sock
-    if c == 'q':
-        running = 0
-    if c == 'p':
-        sock.close()
-        os.system("make tcp")
-        running = 0
-    if c == 'T':
-        sendTime()
-    if c:
-        sock.send(c)
 
 sendTime()
 sock.send('s')

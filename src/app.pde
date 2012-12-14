@@ -11,7 +11,7 @@
 */
 
 
-#define STATUSUPDATEINVTERVAL   10000
+#define STATUSUPDATEINVTERVAL   250
 #define ACTIVITYUPDATEINVTERVAL 500
 
 int sunlightstate;
@@ -33,16 +33,15 @@ uint32_t lightUpdate;
 
 void printDigits(int digits){
   // utility function for digital clock display: prints preceding colon and leading 0
+  Serial.print(":");
   if(digits < 10)
     Serial.print('0');
   Serial.print(digits);
 }
 
 void timePrint(){
-  printDigits(hour());
-  Serial.print(":");
+  Serial.print(hour());
   printDigits(minute());
-  Serial.print(":");
   printDigits(second());
 }
 
@@ -118,6 +117,9 @@ void commProcess(int c) {
             break;
         case 'L':
             lightOn();
+            break;
+        case 'K':
+            lightOff();
             break;
         case 'R':
             reset();
