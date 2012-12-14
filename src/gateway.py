@@ -53,6 +53,8 @@ class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
         self.wfile.write("</body></html>")
         sys.stdout.write('1')
         sys.stdout.flush()
+        self.wfile.flush()
+        self.wfile.close()
 
     def do_POST(self):
         len = int(self.headers['content-length'])

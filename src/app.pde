@@ -21,7 +21,7 @@ int sunlightstate;
 
 #define DOOROPENTHRESHOLD            100
 #define DOORCLOSEHRESHOLD            800
-#define DOORMOVINGTIME               15000L
+#define DOORMOVINGTIME               60000L
 #define DOOR_STATE_OPENING          '^'
 #define DOOR_STATE_CLOSING          'v'
 #define DOOR_STATE_OPEN             'o'
@@ -198,7 +198,7 @@ void commProcess(int c) {
             doorOpen();
             break;
         case 'C':
-            speedB = -100;
+            speedB = -20;
             speedB = wd.motorBSpeed(speedB);
             timeoutDoorMoving = millis() + DOORMOVINGTIME;
             doorState = DOOR_STATE_CLOSING;
