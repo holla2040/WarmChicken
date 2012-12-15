@@ -15,13 +15,13 @@
 #define ACTIVITYUPDATEINVTERVAL 500
 
 int sunlightstate;
-#define SUNLIGHTTHRESHOLD              500
+#define SUNLIGHTTHRESHOLD              100
 #define STATESUNLIGHTABOVETHRESHOLD    'L'
 #define STATESUNLIGHTBELOWTHRESHOLD    'D'
 
 #define DOOROPENTHRESHOLD            100
 #define DOORCLOSEHRESHOLD            800
-#define DOORMOVINGTIME               60000L
+#define DOORMOVINGTIME               120000L
 #define DOOR_STATE_OPENING          '^'
 #define DOOR_STATE_CLOSING          'v'
 #define DOOR_STATE_OPEN             'o'
@@ -281,7 +281,7 @@ void statusLoop() {
 void sunlightLoop() {
     int l = wd.getLightSensor();
     if (sunlightstate == STATESUNLIGHTBELOWTHRESHOLD) {
-        if (l > (SUNLIGHTTHRESHOLD + 150)) { // 150 is larger than light contribution
+        if (l > (SUNLIGHTTHRESHOLD + 50)) { 
             doorOpen();
             sunlightstate = STATESUNLIGHTABOVETHRESHOLD;
         }
