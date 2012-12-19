@@ -198,7 +198,7 @@ void commProcess(int c) {
             doorOpen();
             break;
         case 'C':
-            speedB = -20;
+            speedB = -30;
             speedB = wd.motorBSpeed(speedB);
             timeoutDoorMoving = millis() + DOORMOVINGTIME;
             doorState = DOOR_STATE_CLOSING;
