@@ -21,6 +21,7 @@ int sunlightstate;
 
 #define DOOROPENTHRESHOLD            100
 #define DOORCLOSEHRESHOLD            800
+#define DOOROPENTEMPTHRESHOLD        20
 #define DOORMOVINGTIME               120000L
 #define DOOR_STATE_OPENING          '^'
 #define DOOR_STATE_CLOSING          'v'
@@ -75,7 +76,7 @@ void reset() {
 void setup() {                
     Serial.begin(57600);
     Serial.println("WarmChicken begin");
-    doorState   = DOOR_STATE_OPEN;
+    doorState   = DOOR_STATE_CLOSED;
     sunlightstate = STATESUNLIGHTABOVETHRESHOLD;
 }
 
@@ -310,9 +311,10 @@ void timeLoop() {
 
 void doorLoop() {
     int l = wd.getLightSensor();
+    float  v  = wd.getBoxExteriorTemperature() - 10.0;
     switch (doorState) {
         case DOOR_STATE_CLOSED:
-            if ( l > DOOROPENTHRESHOLD ) {
+            if ( (l > DOOROPENTHRESHOLD) && (v > DOOROPENTEMPTHRESHOLD) ) {
                 doorOpen();
             }
             break;
