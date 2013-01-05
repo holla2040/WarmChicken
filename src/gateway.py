@@ -42,6 +42,7 @@ class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
         #self.wfile.write("<tr><td>Outdoor Light Status</td><td>"+d[5]+"</td></tr>")
 
         self.wfile.write("</table>")
+        """
         self.wfile.write("<table>")
 
         self.wfile.write('<tr><td><form action="/action" method="POST"><input type="hidden" value="L" name="key"/><input type="submit" value="Light On"/></form></td>')
@@ -50,6 +51,14 @@ class ReqHandler (SimpleHTTPServer.SimpleHTTPRequestHandler) :
         self.wfile.write('<td><form action="/action" method="POST" ><input type="hidden" value="C" name="key"/><input type="submit" value="Door Close"/></form></td></tr>')
         self.wfile.write('<tr><td><form action="/action" method="POST" ><input type="hidden" value="S" name="key"/><input type="submit" value="E-Stop"/></form></td></tr>')
         self.wfile.write("</table>")
+        """
+        self.wfile.write('<form action="/action" method="POST"><input type="hidden" value="L" name="key"/><input type="submit" value="Light On"/></form><br>')
+        self.wfile.write('<form action="/action" method="POST" ><input type="hidden" value="K" name="key"/><input type="submit" value="Light Off"/></form><br>')
+        self.wfile.write('<form action="/action" method="POST" ><input type="hidden" value="O" name="key"/><input type="submit" value="Door Open"/></form><br>')
+        self.wfile.write('<form action="/action" method="POST" ><input type="hidden" value="C" name="key"/><input type="submit" value="Door Close"/></form><br>')
+        self.wfile.write('<form action="/action" method="POST" ><input type="hidden" value="S" name="key"/><input type="submit" value="E-Stop"/><br>')
+
+
         self.wfile.write("</body></html>")
         sys.stdout.write('1')
         sys.stdout.flush()
