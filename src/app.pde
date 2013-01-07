@@ -297,7 +297,7 @@ void timeLoop() {
     if ((hour() == 6) && (minute() == 0) && (second() == 0)) {
         lightOn();
     }
-    if ((hour() == 8) && (minute() == 0) && (second() == 0)) {
+    if ((hour() == 8) && (minute() == 0) && (second() == 0) && (doorState == DOOR_STATE_OPEN)) {
         lightOff();
     }
     if ((hour() == 16) && (minute() == 11) && (second() == 0)) {
@@ -322,6 +322,7 @@ void doorLoop() {
                 speedB = 0;
                 speedB = wd.motorBSpeed(speedB);
                 doorState = DOOR_STATE_OPEN;
+                lightOff();
             }
             break;
         case DOOR_STATE_OPEN:
