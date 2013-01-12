@@ -1,18 +1,31 @@
 factory RESET
-set wlan ssid xxxxx
-set wlan phrase xxxx
+set ip address 192.168.0.110
+set ip localport 2000
+set ip dhcp 0
+set ip gateway 192.168.0.1
+set ip netmask 255.255.255.0
+set ip protocol 2
 set ip tcp-mode 0x00
-set dns name host
-set ip host 0
-set dns backup althost
-set ip backup 0
-set ip remote portnumber
-set sys iofunc 0x70
+
+set dns address 192.168.0.1
+
 set sys prinlvl 0x00
+
+set wlan ssid user
+set wlan phrase pass
+set wlan join 1
+set wlan channel 0
+set wlan mask 0x1FFF
+
+set comm idle 0
+set comm match 0x0a
+set comm time 1000
 set comm open 0
 set comm close 0
 set comm remote 0
+
 set uart baud 57600
-set wlan join 1
+set uart flow 0x00
 save
 reboot
+
