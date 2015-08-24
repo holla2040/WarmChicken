@@ -14,10 +14,11 @@ ARDUINO_DIR             = /opt/arduino
 AVR_TOOLS_PATH          = /usr/bin
 AVRDUDE_ARD_PROGRAMMER  = stk500v1
 AVRDUDE                 = avrdude
+AVRDUDE_CONF 			= ~/r/a/arduino/conf/avrdude.conf
                                             
 F_CPU                   = 16000000
 ARDUINO_PORT            = /dev/$(DEVICE_FILE)
-TCP_PORT                = net:192.168.0.110:2000
+TCP_PORT                = net:192.168.0.35:2000
                                             
 ARDUINO_LIBS            = Stepper
                                             
@@ -35,7 +36,7 @@ runserial: all
 	make con
 
 run: all
-	echo -n 'R0 ' | nc 192.168.0.110 2000
+	echo -n 'R0 ' | nc 192.168.0.35 2000
 	make tcp_upload
 
 con:
