@@ -97,9 +97,9 @@ class WarmDirt {
         double      getPIDOutput();
         void        debug();
         static int32_t     bencodercount;
+        uint16_t    adcaverage(uint8_t pin, uint16_t samples);
 
     private:
-        uint16_t    adcaverage(uint8_t pin, uint16_t samples);
         uint16_t    adcmax(uint8_t pin, uint16_t samples);
         double      adctotemp(uint16_t adc,double seriesResistance);
         double      seriesResistorHeatedDirt;
