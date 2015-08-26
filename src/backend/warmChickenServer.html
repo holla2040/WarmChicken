@@ -1,0 +1,15 @@
+<head>
+  <title>helloworldRedis</title>
+</head>
+
+<body>
+  <h3>helloworldRedis - <a href='http://192.168.0.6/video.html'>things</a></h3>
+  {{> thingstemp}}
+</body>
+
+<template name="thingstemp">
+  {{#each things}}
+    <div class='label'>{{_id}}</div><div>{{value}}</div>
+  {{/each}}
+</template>
+
