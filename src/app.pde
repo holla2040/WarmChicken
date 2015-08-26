@@ -396,7 +396,7 @@ void printStatusJSON() {
     Serial.print(correlationID++);
 
     Serial.print(",\"uptime\":");
-    Serial.print(millis());
+    Serial.print((int)(millis()/1000));
 
     Serial.print(",\"temperatureInterior\":");
     v = wd.getBoxInteriorTemperature() - 10.0;  // why - 10?
