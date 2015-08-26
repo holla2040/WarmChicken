@@ -1,23 +1,21 @@
 var redisCollection = new Meteor.RedisCollection("redis");
 
 if (Meteor.isClient) {
-    Meteor.subscribe("things");
+    Meteor.subscribe("warmChickenData");
 
-    Template.thingstemp.helpers({
-        things: function(){
-            return redisCollection.matching("things-*");
+    Template.wcDataTable.helpers({
+        wcKeys: function(){
+            return redisCollection.matching("warmChicken.*");
         }
     });
-
 }
 
 if (Meteor.isServer) {
     var net = Npm.require('net');
     var Fiber = Npm.require('fibers');
 
-    Meteor.publish("things", function () {
-      console.log(redisCollection.matching("things-*"));
-      return redisCollection.matching("things-*");
+    Meteor.publish("warmChickenData", function () {
+      return redisCollection.matching("warmChicken.*");
     });
 
 
@@ -36,7 +34,7 @@ if (Meteor.isServer) {
                         Fiber(function() {
                             //redisCollection.set('batteryVoltage',d.batteryVoltage);
                             Object.keys(d).forEach(function(key) {
-                                redisCollection.set(key,d[key]);
+                                redisCollection.set("warmChicken."+key,d[key]);
                             });
                         }).run();
                         console.log(d);

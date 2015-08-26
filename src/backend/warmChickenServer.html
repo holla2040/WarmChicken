@@ -1,14 +1,13 @@
 <head>
-  <title>helloworldRedis</title>
+  <title>warmChicken</title>
 </head>
 
 <body>
-  <h3>helloworldRedis - <a href='http://192.168.0.6/video.html'>things</a></h3>
-  {{> thingstemp}}
+  {{> wcDataTable}}
 </body>
 
-<template name="thingstemp">
-  {{#each things}}
+<template name="wcDataTable">
+  {{#each wcKeys}}
     <div class='label'>{{_id}}</div><div>{{value}}</div>
   {{/each}}
 </template>

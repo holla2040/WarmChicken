@@ -1,14 +1,5 @@
-/* CSS declarations go here */
-
 body {
     background-color:black;
-    background-image: url("https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS4avkeatqhq9jtu_ScVcSpXgIcaQ7V5OYBqZVwSqcxFzxjhZULng");
-
-/*
-    background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5JQx2zDxUiYIUKXehYVzCBscJCajr-gmRWVutZ5wBN62KVMYo");
-    background-image: url("https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcS4avkeatqhq9jtu_ScVcSpXgIcaQ7V5OYBqZVwSqcxFzxjhZULng");
-    background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1GlFpW8-HBEfYYb3rU1ENwEPz-TGMjOF73JNItNHFCc5wYWQ");
-*/
     color:#FFFFFF;
     font-weight:bold;
     font-size: 80%;
@@ -16,5 +7,5 @@ body {
 
 .label {
     float:left;
-    width:150px;
+    width:200px;
 }
