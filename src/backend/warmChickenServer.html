@@ -4,11 +4,20 @@
 
 <body>
   {{> wcDataTable}}
+  {{> dashboard}}
 </body>
 
 <template name="wcDataTable">
   {{#each wcKeys}}
-    <div class='label'>{{_id}}</div><div>{{value}}</div>
+    <div class='wcTableLabel'>{{delPath _id}}</div><div class='wcTableValue'>{{value}}</div>
+    <div style="clear:both"></div>
   {{/each}}
+  <div style="clear:both"></div>
+</template>
+
+<template name="dashboard">
+    <div class='wcValue'>{{wc.batteryVoltage}}V</div>
+    <div class='wcValue'>{{capitalize wc.mode}}</div>
+    <div class='wcValue'>{{wc.doorLevel}}</div>
 </template>
 

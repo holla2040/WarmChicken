@@ -1,11 +1,19 @@
 body {
     background-color:black;
-    color:#FFFFFF;
+    color:      #FFFFFF;
     font-weight:bold;
-    font-size: 80%;
+    font-size:  80%;
 }
 
-.label {
-    float:left;
-    width:200px;
+.wcTableLabel {
+    float:      left;
+}
+
+.wcTableValue {
+    float:      right;
+    width:      25%;
+}
+.wcValue {
+    font-size:  250%;
+    text-align: center;
 }

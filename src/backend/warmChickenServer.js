@@ -8,6 +8,31 @@ if (Meteor.isClient) {
             return redisCollection.matching("warmChicken.*");
         }
     });
+
+    Template.dashboard.helpers({
+        wc: function(){
+            var d = redisCollection.matching("warmChicken.*").fetch();
+            var data = Object();
+            d.forEach(function(o) {
+                data[o.key.replace("warmChicken.","")] = o.value;
+            });
+            return data;
+        }
+    });
+
+    Template.registerHelper('capitalize', function(v) {
+        return s(v).capitalize().value();
+        //return v;
+    });
+
+    Template.registerHelper('delPath', function(v) {
+        return v.replace("warmChicken.","");
+    });
+
+    Template.registerHelper('oneDecimal', function(v) {
+        return s.numberFormat(v,1);
+    });
+
 }
 
 if (Meteor.isServer) {
@@ -37,9 +62,9 @@ if (Meteor.isServer) {
                                 redisCollection.set("warmChicken."+key,d[key]);
                             });
                         }).run();
-                        console.log(d);
+                        // console.log(d);
                     } catch(err) {
-                        console.log(message);
+                        console.log(err+"\n"+message);
                     }
                     message = "";
                 }
