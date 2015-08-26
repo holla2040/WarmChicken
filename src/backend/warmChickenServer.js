@@ -48,26 +48,27 @@ if (Meteor.isServer) {
     var client = net.createConnection(2000,'192.168.0.35');
 
     var message = "";
-        client.on('data', function(data) {
-                // console.log('Received: ' + data);
-                message += data;
-                if (message.slice(-1) == '\n') {
-                    // console.log('message: >' + message+'<');
-                    
-                    try {
-                        var d = JSON.parse(message);
-                        Fiber(function() {
-                            //redisCollection.set('batteryVoltage',d.batteryVoltage);
-                            Object.keys(d).forEach(function(key) {
-                                redisCollection.set("warmChicken."+key,d[key]);
-                            });
-                        }).run();
-                        // console.log(d);
-                    } catch(err) {
-                        console.log(err+"\n"+message);
-                    }
-                    message = "";
+    client.on('data', function(data) {
+        // console.log('Received: ' + data);
+        message += data;
+        if (message.slice(-1) == '\n') {
+            // console.log('message: >' + message+'<');
+            try {
+                var d = JSON.parse(message);
+                Fiber(function() {
+                    //redisCollection.set('batteryVoltage',d.batteryVoltage);
+                    Object.keys(d).forEach(function(key) {
+                        redisCollection.set("warmChicken."+key,d[key]);
+                    });
+                    redisCollection.set("warmChicken.updateDay",moment(new Date()).format('YYMMDD'));
+                    redisCollection.set("warmChicken.updateTime",moment(new Date()).format('HHmmss'));
+                }).run();
+                // console.log(d);
+                } catch(err) {
+                    console.log(err+"\n"+message);
                 }
-            });
+                message = "";
+            }
+        });
     });
 };

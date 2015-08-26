@@ -9,3 +9,4 @@ insecure
 slava:redis-livedata
 underscore
 underscorestring:underscore.string
+momentjs:moment
