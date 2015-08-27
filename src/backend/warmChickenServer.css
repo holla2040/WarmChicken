@@ -1,6 +1,10 @@
 body {
+    background-image:url("chicken.jpg");
+    background-position: center; 
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     background-color:black;
-    color:      #FFFFFF;
+    color:      #000000;
     font-weight:bold;
     font-size:  80%;
 }

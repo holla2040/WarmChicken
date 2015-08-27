@@ -4,7 +4,6 @@
 
 <body>
   {{> wcDataTable}}
-  {{> dashboard}}
 </body>
 
 <template name="wcDataTable">
@@ -18,6 +17,6 @@
 <template name="dashboard">
     <div class='wcValue'>{{wc.batteryVoltage}}V</div>
     <div class='wcValue'>{{capitalize wc.mode}}</div>
-    <div class='wcValue'>{{wc.doorLevel}}</div>
+    <div class='wcValue'>{{wc.doorLevel}}"</div>
 </template>
 

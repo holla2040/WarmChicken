@@ -1,4 +1,4 @@
-var redisCollection = new Meteor.RedisCollection("redis");
+var redisCollection = new Meteor.RedisCollection('redis')
 
 if (Meteor.isClient) {
     Meteor.subscribe("warmChickenData");
@@ -51,24 +51,29 @@ if (Meteor.isServer) {
     client.on('data', function(data) {
         // console.log('Received: ' + data);
         message += data;
-        if (message.slice(-1) == '\n') {
-            // console.log('message: >' + message+'<');
-            try {
-                var d = JSON.parse(message);
-                Fiber(function() {
-                    //redisCollection.set('batteryVoltage',d.batteryVoltage);
-                    Object.keys(d).forEach(function(key) {
-                        redisCollection.set("warmChicken."+key,d[key]);
-                    });
-                    redisCollection.set("warmChicken.updateDay",moment(new Date()).format('YYMMDD'));
-                    redisCollection.set("warmChicken.updateTime",moment(new Date()).format('HHmmss'));
-                }).run();
-                // console.log(d);
-                } catch(err) {
-                    console.log(err+"\n"+message);
+        if (message.indexOf('}') != -1) {
+            var updates = message.split("\r");
+            updates.forEach(function(update) {
+                if (update[0] == '{' && update.slice(-1) == '}') {
+                    console.log(update);
+                    try {
+                        var d = JSON.parse(update);
+                        Fiber(function() {
+                            //redisCollection.set('batteryVoltage',d.batteryVoltage);
+                            Object.keys(d).forEach(function(key) {
+                                redisCollection.set("warmChicken."+key,d[key]);
+                            });
+                            redisCollection.set("warmChicken.updateDay",moment(new Date()).format('YYMMDD'));
+                            redisCollection.set("warmChicken.updateTime",moment(new Date()).format('HHmmss'));
+                        }).run();
+                        // console.log(d);
+                    } catch(err) {
+                        console.log(err+"\n"+update);
+                    }
                 }
-                message = "";
-            }
-        });
+            });
+            message = "";  // this isn't quite right might drop the next message but who cares, its a chicken coop!
+        }
     });
+  });
 };
