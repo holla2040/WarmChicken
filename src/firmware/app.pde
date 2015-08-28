@@ -32,7 +32,7 @@ echo 'R' | nc 192.168.0.35 2000;avrdude -q -V -p atmega328p -c stk500v1 -P net:1
 #define VPLUSR2     179000
 #define VPLUSSCALE  0.019697    // (((5.0/1024.0)/VPLUSR2)*(VPLUSR1+VPLUSR2))
 
-#define STATUSUPDATEINVTERVAL   1000
+#define STATUSUPDATEINVTERVAL   15000
 #define ACTIVITYUPDATEINVTERVAL 500
 
 int sunlightstate;
@@ -43,13 +43,14 @@ int sunlightstate;
 #define LIGHTLEVELDAY                50
 #define LIGHTLEVELNIGHT              10 
 
-#define DOORUPMOVINGTIME             23500L
-#define DOORDOWNMOVINGTIME           19500L
+#define DOORUPMOVINGTIME             30000L
+#define DOORDOWNMOVINGTIME           25000L
 #define DOOR_STATE_OPENING          '^'
 #define DOOR_STATE_CLOSING          'v'
 #define DOOR_STATE_OPEN             'o'
 #define DOOR_STATE_CLOSED           'c'
-#define DOOR_FULLY_OPEN_DISTANCE    24.13
+#define DOOR_FULLY_OPEN_DISTANCE    23.7
+#define DOOR_OPEN_DISTANCE          21.0
 uint8_t doorState;
 
 uint32_t timeoutDoorMoving;
@@ -545,7 +546,7 @@ void loopDoor() {
         }
         break;
     case DOOR_STATE_OPENING:
-        if ((millis() > timeoutDoorMoving) || (getDistance() > 21.00)) {
+        if ((millis() > timeoutDoorMoving) || (getDistance() > DOOR_OPEN_DISTANCE)) {
             speedB = 0;
             speedB = wd.motorBSpeed(speedB);
             doorState = DOOR_STATE_OPEN;
@@ -558,9 +559,12 @@ void loopDoor() {
             timeoutDoorMoving = millis() + DOORDOWNMOVINGTIME;
             doorState = DOOR_STATE_CLOSING;
         }
+        if (getDistance() < DOOR_OPEN_DISTANCE) {
+          doorOpen();
+        }
         break;
     case DOOR_STATE_CLOSING:
-        if ((millis() > timeoutDoorMoving) || (getDistance() < 1.00)) { //turn motor off at d=1.0 will coast it closed
+        if ((millis() > timeoutDoorMoving) || (getDistance() < 1.0)) { //turn motor off at d=1.0 will coast it closed
             speedB = 0;
             speedB = wd.motorBSpeed(speedB);
             doorState = DOOR_STATE_CLOSED;
@@ -572,7 +576,7 @@ void loopDoor() {
 void loop() {
     loopStatus();
     commLoop();
-    loopLight();
+    //loopLight();
 
     if (getAuto()) {
         if (getUpLimit()) {
