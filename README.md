@@ -3,7 +3,7 @@ WarmChicken
 
 Chicken Coop Controller
 
-Controller uses WarmDirt hardware
+Controller uses <a href='https://github.com/holla2040/WarmDirt'>WarmDirt hardware</a>
 
 Operation:<br>
 a. Control door position based on sunlight level<br>
