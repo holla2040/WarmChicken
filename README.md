@@ -5,10 +5,10 @@ Chicken Coop Controller
 
 Controller uses WarmDirt hardware
 
-Operation:
-a. Control door position based on sunlight level
-c. Control interior temperature
-d. Control interior lighting to provide more than 8 hours of light/day
+Operation:<br>
+a. Control door position based on sunlight level<br>
+b. Control interior lighting to provide more than 8 hours of light/day<br>
+c. Control interior temperature - TBA<br>
 
 
 
