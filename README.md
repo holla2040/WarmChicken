@@ -36,5 +36,5 @@ d. Control interior lighting to provide more than 8 hours of light/day
 
 
 
-
+<img src='https://raw.githubusercontent.com/holla2040/WarmChicken/master/design/WarmChicken%20Architecture.png'>
 
