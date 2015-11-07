@@ -55,9 +55,10 @@ if (Meteor.isServer) {
             var updates = message.split("\r");
             updates.forEach(function(update) {
                 if (update[0] == '{' && update.slice(-1) == '}') {
-                    console.log(update);
+                    //console.log(update);
                     try {
                         var d = JSON.parse(update);
+                        console.log(JSON.stringify(d, undefined, 2)+"\n");
                         Fiber(function() {
                             //redisCollection.set('batteryVoltage',d.batteryVoltage);
                             Object.keys(d).forEach(function(key) {
@@ -75,5 +76,14 @@ if (Meteor.isServer) {
             message = "";  // this isn't quite right might drop the next message but who cares, its a chicken coop!
         }
     });
+    client.on('close',function() {
+        console.log('connection closed');
+        Meteor.setTimeout(function() {
+            client.connect(2000, '192.168.0.35',function() {
+                console.log("connection open");
+            })
+        },5000);
+    });
+
   });
 };
