@@ -14,6 +14,8 @@ echo 'R' | nc 192.168.0.35 2000;avrdude -q -V -p atmega328p -c stk500v1 -P net:1
 #include "Time.h"
 #define TIME_MSG_LEN  11
 
+WarmDirt wd;
+
 /* notes
     uses Time functions from arduino, http://playground.arduino.cc/Code/Time 
     T1354928747
@@ -41,7 +43,7 @@ int sunlightstate;
 #define STATESUNLIGHTBELOWTHRESHOLD    'D'
 
 #define LIGHTLEVELDAY                50
-#define LIGHTLEVELNIGHT              10 
+#define LIGHTLEVELNIGHT              10
 
 #define DOORUPMOVINGTIME             30000L
 #define DOORDOWNMOVINGTIME           25000L
@@ -75,6 +77,10 @@ void timePrint() {
     printDigits(second());
 }
 
+uint8_t lightSwitch() {
+  return wd.adcaverage(PINHEATEDDIRT,SAMPLES) < 500;
+}
+
 char *ftoa(char *a, double f, int precision) {
     long p[] = { 0, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000 };
 
@@ -95,7 +101,6 @@ uint32_t nextActivityUpdate;
 int8_t speedA = 0;
 int8_t speedB = 0;
 
-WarmDirt wd;
 
 void reset() {
     asm volatile ("jmp 0x3E00");        /* reset vector for 328P at this bootloader size */
@@ -471,8 +476,18 @@ void printStatusJSON() {
     }
     Serial.print("\"");
 
+    Serial.print(",\"lightSwitch\":");
+        if (lightSwitch()) {
+            Serial.print(1);
+        } else {
+            Serial.print(0);
+        }
+
     Serial.print(",\"doorLevel\":");
     Serial.print(getDistance(),1);
+
+
+
     Serial.println("}");
 }
 
@@ -493,6 +508,13 @@ void loopStatus() {
 }
 
 void loopLight() {
+  if (lightSwitch()) {
+    lightOn();
+  } else {
+    lightOff();
+  }
+
+/*
     int l = wd.getLightSensor();
 
     if (l > (SUNLIGHTTHRESHOLD + 50)) {
@@ -506,6 +528,7 @@ void loopLight() {
     if (millis() > timeoutLightOff) {
         lightOff();
     }
+*/
 }
 
 /*
@@ -576,7 +599,7 @@ void loopDoor() {
 void loop() {
     loopStatus();
     commLoop();
-    //loopLight();
+    loopLight();
 
     if (getAuto()) {
         if (getUpLimit()) {
@@ -587,4 +610,5 @@ void loop() {
     } else {
         loopManual();
     }
+    
 }
