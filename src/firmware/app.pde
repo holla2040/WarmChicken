@@ -560,8 +560,24 @@ void loopManual() {
     speedB = wd.motorBSpeed(speedB);
 }
 
+#define AVECOUNT 5
 void loopDoor() {
-    int l = wd.getLightSensor();
+    int i, l = wd.getLightSensor();
+
+    float d,distance = 0;
+
+    // this is all a rig because there are ultrasonic 'dead spots' over the door range
+    for (i = 0; i < AVECOUNT; i++) {
+      d = getDistance();
+      // Serial.println(d);
+      if (d > -1.0 && d < 24.0) { // throw out bad values
+        distance += d;
+      } else {
+        distance += 15.0; // add a dummy value to the average
+      }
+    }
+    distance = distance / AVECOUNT;
+
     switch (doorState) {
     case DOOR_STATE_CLOSED:
         if (l > LIGHTLEVELDAY) {
@@ -569,7 +585,7 @@ void loopDoor() {
         }
         break;
     case DOOR_STATE_OPENING:
-        if ((millis() > timeoutDoorMoving) || (getDistance() > DOOR_OPEN_DISTANCE)) {
+        if ((millis() > timeoutDoorMoving) || (distance > DOOR_OPEN_DISTANCE)) {
             speedB = 0;
             speedB = wd.motorBSpeed(speedB);
             doorState = DOOR_STATE_OPEN;
@@ -582,12 +598,12 @@ void loopDoor() {
             timeoutDoorMoving = millis() + DOORDOWNMOVINGTIME;
             doorState = DOOR_STATE_CLOSING;
         }
-        if (getDistance() < DOOR_OPEN_DISTANCE) {
+        if (distance < DOOR_OPEN_DISTANCE) {
           doorOpen();
         }
         break;
     case DOOR_STATE_CLOSING:
-        if ((millis() > timeoutDoorMoving) || (getDistance() < 1.0)) { //turn motor off at d=1.0 will coast it closed
+        if ((millis() > timeoutDoorMoving) || ((distance > -1.0) && (distance < 0.5))) { //turn motor off at d=1.0 will coast it closed
             speedB = 0;
             speedB = wd.motorBSpeed(speedB);
             doorState = DOOR_STATE_CLOSED;
