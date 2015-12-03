@@ -11,8 +11,8 @@ if (Meteor.isClient) {
 
     Template.dashboard.helpers({
         wc: function(){
-            var d = redisCollection.matching("warmChicken.*").fetch();
             var data = Object();
+            var d = redisCollection.matching("warmChicken.*").fetch();
             d.forEach(function(o) {
                 data[o.key.replace("warmChicken.","")] = o.value;
             });
@@ -33,6 +33,19 @@ if (Meteor.isClient) {
         return s.numberFormat(v,1);
     });
 
+    Meteor.setInterval(function() {
+        var now = new Date().getTime()/1000;
+        var d = parseInt(redisCollection.matching("warmChicken.updateTimeSeconds").fetch()[0].value);
+
+        //console.log(now, d, now - d);
+
+        if ((now - d) > 70) { // should have 4 updates in 70 seconds
+            $('body').addClass('stale');
+        } else {
+            $('body').removeClass('stale');
+        }
+    
+    }, 10000);
 }
 
 if (Meteor.isServer) {
@@ -42,7 +55,6 @@ if (Meteor.isServer) {
     Meteor.publish("warmChickenData", function () {
       return redisCollection.matching("warmChicken.*");
     });
-
 
   Meteor.startup(function () {
     var client = net.createConnection(2000,'192.168.0.35');
@@ -65,7 +77,8 @@ if (Meteor.isServer) {
                                 redisCollection.set("warmChicken."+key,d[key]);
                             });
                             redisCollection.set("warmChicken.updateDay",moment(new Date()).format('YYMMDD'));
-                            redisCollection.set("warmChicken.updateTime",moment(new Date()).format('HHmmss'));
+                            redisCollection.set("warmChicken.updateTime", moment(new Date()).format('HHmmss'));
+                            redisCollection.set("warmChicken.updateTimeSeconds", new Date().getTime()/1000);
                         }).run();
                         // console.log(d);
                     } catch(err) {
