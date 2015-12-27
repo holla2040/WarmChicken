@@ -1,5 +1,5 @@
 /**********************************************************************************************
- * Arduino PID Library - Version 1.0.1
+ * Arduino PID Library - Version 1.1.1
  * by Brett Beauregard <br3ttb@gmail.com> brettbeauregard.com
  *
  * This Library is licensed under a GPLv3 License
@@ -11,7 +11,7 @@
   #include "WProgram.h"
 #endif
 
-#include <PID_v1.h>
+#include "PID_v1.h"
 
 /*Constructor (...)*********************************************************
  *    The parameters specified here are those for for which we can't set up 
@@ -20,6 +20,12 @@
 PID::PID(double* Input, double* Output, double* Setpoint,
         double Kp, double Ki, double Kd, int ControllerDirection)
 {
+	
+    myOutput = Output;
+    myInput = Input;
+    mySetpoint = Setpoint;
+	inAuto = false;
+	
 	PID::SetOutputLimits(0, 255);				//default output limit corresponds to 
 												//the arduino pwm limits
 
@@ -29,61 +35,43 @@ PID::PID(double* Input, double* Output, double* Setpoint,
     PID::SetTunings(Kp, Ki, Kd);
 
     lastTime = millis()-SampleTime;				
-    inAuto = false;
-    myOutput = Output;
-    myInput = Input;
-    mySetpoint = Setpoint;
-		
 }
  
  
 /* Compute() **********************************************************************
  *     This, as they say, is where the magic happens.  this function should be called
  *   every time "void loop()" executes.  the function will decide for itself whether a new
- *   pid Output needs to be computed
+ *   pid Output needs to be computed.  returns true when the output is computed,
+ *   false when nothing has been done.
  **********************************************************************************/ 
-void PID::Compute() {
-    if(!inAuto) {
-        return;
-    }
-    unsigned long now = millis();
-    unsigned long timeChange = (now - lastTime);
-    if(timeChange>=SampleTime) {
-        /*Compute all the working error variables*/
-        double input = *myInput;
-        double error = *mySetpoint - input;
-        ITerm += (ki * error);
-        ipartraw += (ki * error);
-        if (ITerm > outMax) {
-            ITerm = outMax;
-        }
-        else {
-            if (ITerm < outMin) {
-                 ITerm = outMin;
-            }
-        } 
-        double dInput = (input - lastInput);
-
-        /*Compute PID Output*/
-        ppart = kp * error;
-        ipart = ITerm;
-        dpart = - kd * dInput;
-        double output = ppart + ipart + dpart;
-
-        if(output > outMax) {
-             output = outMax;
-        }
-        else {
-            if(output < outMin) {
-                 output = outMin;
-            }
-        }
-        *myOutput = output;
-
-        /*Remember some variables for next time*/
-        lastInput = input;
-        lastTime = now;
-    } 
+bool PID::Compute()
+{
+   if(!inAuto) return false;
+   unsigned long now = millis();
+   unsigned long timeChange = (now - lastTime);
+   if(timeChange>=SampleTime)
+   {
+      /*Compute all the working error variables*/
+	  double input = *myInput;
+      double error = *mySetpoint - input;
+      ITerm += (ki * error);
+      if(ITerm > outMax) ITerm= outMax;
+      else if(ITerm < outMin) ITerm= outMin;
+      double dInput = (input - lastInput);
+ 
+      /*Compute PID Output*/
+      double output = kp * error + ITerm - kd * dInput;
+      
+	  if(output > outMax) output = outMax;
+      else if(output < outMin) output = outMin;
+	  *myOutput = output;
+	  
+      /*Remember some variables for next time*/
+      lastInput = input;
+      lastTime = now;
+	  return true;
+   }
+   else return false;
 }
 
 
@@ -145,8 +133,8 @@ void PID::SetOutputLimits(double Min, double Max)
 	   if(*myOutput > outMax) *myOutput = outMax;
 	   else if(*myOutput < outMin) *myOutput = outMin;
 	 
-	   if(ITerm > outMax) ITerm= outMax;
-	   else if(ITerm < outMin) ITerm= outMin;
+	   if(ITerm > outMax) ITerm = outMax;
+	   else if(ITerm < outMin) ITerm = outMin;
    }
 }
 

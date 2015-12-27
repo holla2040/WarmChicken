@@ -1,6 +1,6 @@
 #ifndef PID_v1_h
 #define PID_v1_h
-#define LIBRARY_VERSION	1.0.0
+#define LIBRARY_VERSION	1.1.1
 
 class PID
 {
@@ -20,7 +20,7 @@ class PID
 	
     void SetMode(int Mode);               // * sets PID to either Manual (0) or Auto (non-0)
 
-    void Compute();                       // * performs the PID calculation.  it should be
+    bool Compute();                       // * performs the PID calculation.  it should be
                                           //   called every time loop() cycles. ON/OFF and
                                           //   calculation frequency can be set using SetMode
                                           //   SetSampleTime respectively
@@ -50,10 +50,9 @@ class PID
 	double GetKd();						  // where it's important to know what is actually 
 	int GetMode();						  //  inside the PID.
 	int GetDirection();					  //
-    double ppart,ipart,ipartraw,dpart;
+	void Initialize();
 
   private:
-	void Initialize();
 	
 	double dispKp;				// * we'll hold on to the tuning parameters in user-entered 
 	double dispKi;				//   format for display purposes
@@ -73,7 +72,7 @@ class PID
 	unsigned long lastTime;
 	double ITerm, lastInput;
 
-	int SampleTime;
+	unsigned long SampleTime;
 	double outMin, outMax;
 	bool inAuto;
 };
