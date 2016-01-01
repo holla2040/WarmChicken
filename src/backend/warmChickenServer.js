@@ -1,4 +1,6 @@
 var redisCollection = new Meteor.RedisCollection('redis')
+var host = 'localhost';
+var port = 1900;
 
 if (Meteor.isClient) {
     Meteor.subscribe("warmChickenData");
@@ -57,7 +59,7 @@ if (Meteor.isServer) {
     });
 
   Meteor.startup(function () {
-    var client = net.createConnection(2000,'192.168.0.35');
+    var client = net.createConnection(port,host);
 
     var message = "";
     client.on('data', function(data) {
@@ -92,7 +94,7 @@ if (Meteor.isServer) {
     client.on('close',function() {
         console.log('connection closed');
         Meteor.setTimeout(function() {
-            client.connect(2000, '192.168.0.35',function() {
+            client.connect(port, host,function() {
                 console.log("connection open");
             })
         },5000);

@@ -1,10 +1,36 @@
 <head>
   <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1,  target-densitydpi=device-dpi" />
   <title>warmChicken</title>
+<script>
+    function myFunction(k)  {
+        $.get("http://t:1880/wcCmd?v="+k,function(data) {
+            console.log(k);
+        });
+    }
+    /* 
+        <button onclick="myFunction('M')">Manual</button>
+        <button onclick="myFunction('A')">Auto</button>
+    */
+</script>
+<style>
+a {
+    color:white;
+}
+</style>
 </head>
 
 <body>
   {{> wcDataTable}}
+<hr>
+    <a href='http://t:1880/wcCmd?v=A'>Auto</a> 
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+    <a href='http://t:1880/wcCmd?v=M'>Manual</a> 
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+    <a href='http://t:1880/wcCmd?v=iiiiiiiiii'>Up</a> 
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+    <a href='http://t:1880/wcCmd?v=kkkkkkkkkk'>Down</a> 
+    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+    <a href='http://t:1880/wcCmd?v=%20'>Stop</a> 
 </body>
 
 <template name="wcDataTable">
