@@ -1,3 +1,4 @@
+// this code is serious need of refactor
 #include <stdint.h>
 #include "WarmDirt.h"
 #include "PID_v1.h"
@@ -53,7 +54,7 @@ int sunlightstate;
 #define DOOR_STATE_OPEN             'o'
 #define DOOR_STATE_CLOSED           'c'
 #define DOOR_STATE_MANUAL           'm'
-#define DOOR_FULLY_OPEN_DISTANCE    23.7
+#define DOOR_FULLY_OPEN_DISTANCE    24.6
 #define DOOR_OPEN_SET               18.0
 #define DOOR_CLOSE_SET              0.3
 uint8_t doorState;
@@ -76,11 +77,12 @@ uint8_t  mode;
 #define  MODE_AUTO     'A'
 #define  MODE_MANUAL   'M'
 #define  MODE_OVERRIDE 'O'
-uint32_t timeoutMode;
 
 #define LIGHTONLEVEL 50
 
 uint32_t lightUpdate;
+
+float temperatureInterior;
 
 void printDigits(int digits) {
     // utility function for digital clock display: prints preceding colon and leading 0
@@ -179,7 +181,7 @@ long getDuration() {
     digitalWrite(pinTrig, LOW);
     delayMicroseconds(2);
     digitalWrite(pinTrig, HIGH);
-    delayMicroseconds(5);
+    delayMicroseconds(10);
     digitalWrite(pinTrig, LOW);
     duration = pulseIn(pinEcho, HIGH, 4000);
     // Serial.println(duration);
@@ -366,13 +368,11 @@ void commProcess(int c) {
     case 'A': // MODE_AUTO
         Serial.println("auto");
         fullStop();
-        timeoutMode = 0;
         mode = MODE_AUTO;
         break;
     case 'M': // MODE_MANUAL
         Serial.println("manual");
         fullStop();
-        timeoutMode = millis() + 30000;
         mode = MODE_MANUAL;
         break;
     case 'T':
@@ -403,8 +403,8 @@ void printStatusDelim() {
     timePrint();
     Serial.print("|");
 
-    v = wd.getBoxInteriorTemperature() - 10.0;  // why - 10?
-    Serial.print(v, 2);
+    temperatureInterior = wd.getBoxInteriorTemperature() - 10.0;  // why - 10?
+    Serial.print(temperatureInterior, 2);
     Serial.print("|");
 
     v = wd.getBoxExteriorTemperature() - 10.0;
@@ -457,8 +457,8 @@ void printStatusJSON() {
     Serial.print((unsigned long)(millis()/1000));
 
     Serial.print(",\"temperatureInterior\":");
-    v = wd.getBoxInteriorTemperature() - 10.0;  // why - 10?
-    Serial.print(v, 0);
+    temperatureInterior = wd.getBoxInteriorTemperature() - 10.0;  // why - 10?
+    Serial.print(temperatureInterior, 0);
     Serial.print("");
 
     Serial.print(",\"temperatureExterior\":");
@@ -475,10 +475,9 @@ void printStatusJSON() {
     Serial.print(speedA, DEC);
     Serial.print("");
 
-    Serial.print(",\"batteryVoltage\":\"");
+    Serial.print(",\"batteryVoltage\":");
     v = getVPlus();
     Serial.print(v, 2);
-    Serial.print("\"");
 
     Serial.print(",\"mode\":\"");
     switch (mode) {
@@ -672,26 +671,30 @@ void loopDoor() {
     
 }
 
+
+bool lastUpLimit;
+
 void loop() {
     loopStatus();
     commLoop();
     loopLight();
     doorPosition = getDistance();
 
+    if ((lastUpLimit == 0) && getUpLimit()) {
+      fullStop();
+    }
+    lastUpLimit == getUpLimit();
+
     switch (mode) { 
       case MODE_AUTO:
-        if (getUpLimit()) {
-            fullStop();
-        } else {
-            loopDoor();
-        }
+        loopDoor();
         if (digitalRead(pinOverride)) {
           mode = MODE_OVERRIDE;
         }
         break;
       case MODE_MANUAL:
-        if (millis() > timeoutMode) {
-          mode = MODE_AUTO;
+        if (digitalRead(pinOverride)) {
+          mode = MODE_OVERRIDE;
         }
         break;
       case MODE_OVERRIDE:
@@ -700,6 +703,9 @@ void loop() {
         } 
         loopManual();
     }
-    
+
+    if ((temperatureInterior < 20.0) && (mode == MODE_AUTO)) {
+      mode = MODE_MANUAL;
+    }
 }
 
