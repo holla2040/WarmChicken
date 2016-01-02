@@ -47,6 +47,9 @@ int sunlightstate;
 #define LIGHTLEVELDAY                50
 #define LIGHTLEVELNIGHT              20
 
+#define HEATERTHRESHOLD             20
+#define BADSENSORTHRESHOLD          20
+
 #define DOORUPMOVINGTIME             30000L
 #define DOORDOWNMOVINGTIME           25000L
 #define DOOR_STATE_OPENING          '^'
@@ -549,6 +552,8 @@ void printStatusJSON() {
     Serial.print(",\"doorSetPoint\":");
     Serial.print(doorSetPoint,1);
 
+    Serial.print(",\"heater\":");
+    Serial.print((int)wd.getLoad0On());
 
     Serial.println("}");
 }
@@ -617,7 +622,7 @@ void loopTime() {
 }
 */
 
-void loopManual() {
+void loopOverride() {
     speedB = 0;
 
     if (getUp() && (!getUpLimit())) {
@@ -632,27 +637,28 @@ void loopManual() {
 void loopDoor() {
     int i, l = wd.getLightSensor();
 
-    if (l > LIGHTLEVELDAY) {
-      doorOpen();
-    } else {
-        if (l < LIGHTLEVELNIGHT) {
-          doorClose();
-        }
+    if (mode == MODE_AUTO) {
+      if (l > LIGHTLEVELDAY) {
+        doorOpen();
+      } else {
+          if (l < LIGHTLEVELNIGHT) {
+            doorClose();
+          }
+      }
+
+    if (doorPosition > 0.00) {
+      if (abs(doorPosition - doorSetPoint) > 0.30) {
+        doorPID.Compute();
+      } else {
+        doorMotorSpeed = 0;
+        doorPID.Initialize();
+      }
     }
 
-  if (doorPosition > 0.00) {
-    if (abs(doorPosition - doorSetPoint) > 0.30) {
-      doorPID.Compute();
-    } else {
-      doorMotorSpeed = 0;
-      doorPID.Initialize();
+    if (!getUpLimit()) {
+      speedB = wd.motorBSpeed(int(doorMotorSpeed));
     }
   }
-
-  if (!getUpLimit()) {
-    speedB = wd.motorBSpeed(int(doorMotorSpeed));
-  }
-
 
   if ((doorPosition > DOOR_CLOSE_SET) && (doorPosition < DOOR_OPEN_SET)) {
     if (speedB > 0) {
@@ -671,23 +677,31 @@ void loopDoor() {
     
 }
 
+void loopHeater() {
+    if (temperatureInterior < HEATERTHRESHOLD) {
+      wd.load0On();
+    } else {
+      wd.load0Off();
+    }
+}
 
-bool lastUpLimit;
+int lastUpLimit;
 
 void loop() {
     loopStatus();
     commLoop();
     loopLight();
     doorPosition = getDistance();
+    loopDoor();
+    loopHeater();
 
     if ((lastUpLimit == 0) && getUpLimit()) {
       fullStop();
     }
-    lastUpLimit == getUpLimit();
+    lastUpLimit = getUpLimit();
 
     switch (mode) { 
       case MODE_AUTO:
-        loopDoor();
         if (digitalRead(pinOverride)) {
           mode = MODE_OVERRIDE;
         }
@@ -701,10 +715,10 @@ void loop() {
         if (!digitalRead(pinOverride)) {
           mode = MODE_AUTO;
         } 
-        loopManual();
+        loopOverride();
     }
 
-    if ((temperatureInterior < 20.0) && (mode == MODE_AUTO)) {
+    if ((temperatureInterior < BADSENSORTHRESHOLD) && (mode == MODE_AUTO)) {
       mode = MODE_MANUAL;
     }
 }
