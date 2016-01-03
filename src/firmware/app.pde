@@ -673,12 +673,13 @@ void loopDoor() {
   } 
   if (doorPosition < (DOOR_CLOSE_SET + 0.5)) {
     doorState = DOOR_STATE_CLOSED;
+    mode = MODE_MANUAL;
   } 
     
 }
 
 void loopHeater() {
-    if (temperatureInterior < HEATERTHRESHOLD) {
+    if ((temperatureInterior < HEATERTHRESHOLD) && (doorPosition < 1.0)) {
       wd.load0On();
     } else {
       wd.load0Off();
@@ -719,6 +720,7 @@ void loop() {
     }
 
     if ((temperatureInterior < BADSENSORTHRESHOLD) && (mode == MODE_AUTO)) {
+      fullStop();
       mode = MODE_MANUAL;
     }
 }
