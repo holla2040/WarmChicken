@@ -36,7 +36,7 @@ WarmDirt wd;
 #define VPLUSR2     179000
 #define VPLUSSCALE  0.019697    // (((5.0/1024.0)/VPLUSR2)*(VPLUSR1+VPLUSR2))
 
-#define STATUSUPDATEINVTERVAL   1000
+#define STATUSUPDATEINVTERVAL   2500
 #define ACTIVITYUPDATEINVTERVAL 500
 
 int sunlightstate;
@@ -57,9 +57,10 @@ int sunlightstate;
 #define DOOR_STATE_OPEN             'o'
 #define DOOR_STATE_CLOSED           'c'
 #define DOOR_STATE_MANUAL           'm'
-#define DOOR_FULLY_OPEN_DISTANCE    24.6
+#define DOOR_STATE_STOPPED          's'
+#define DOOR_FULLY_OPEN_DISTANCE    24.2
 #define DOOR_OPEN_SET               18.0
-#define DOOR_CLOSE_SET              0.3
+#define DOOR_CLOSE_SET              0.5
 uint8_t doorState;
 #define AVECOUNT                    10
 double  doorKp            = 200;
@@ -425,6 +426,9 @@ void printStatusDelim() {
     case DOOR_STATE_OPENING:
         Serial.print("opening");
         break;
+    case DOOR_STATE_STOPPED:
+        Serial.print("stopped");
+        break;
     case DOOR_STATE_OPEN:
         Serial.print("open");
         break;
@@ -461,12 +465,12 @@ void printStatusJSON() {
 
     Serial.print(",\"temperatureInterior\":");
     temperatureInterior = wd.getBoxInteriorTemperature() - 10.0;  // why - 10?
-    Serial.print(temperatureInterior, 0);
+    Serial.print(temperatureInterior, 1);
     Serial.print("");
 
     Serial.print(",\"temperatureExterior\":");
     v = wd.getBoxExteriorTemperature() - 10.0;
-    Serial.print(v, 0);
+    Serial.print(v, 1);
     Serial.print("");
 
     Serial.print(",\"lightLevelExterior\":");
@@ -526,6 +530,9 @@ void printStatusJSON() {
         break;
     case DOOR_STATE_OPENING:
         Serial.print("opening");
+        break;
+    case DOOR_STATE_STOPPED:
+        Serial.print("stopped");
         break;
     case DOOR_STATE_OPEN:
         Serial.print("open");
@@ -667,13 +674,18 @@ void loopDoor() {
     if (speedB < 0) {
       doorState = DOOR_STATE_CLOSING;
     }
+    if (speedB == 0) {
+      doorState = DOOR_STATE_STOPPED;
+    }
   }
   if (doorPosition > (DOOR_OPEN_SET - 0.5)) {
     doorState = DOOR_STATE_OPEN;
   } 
   if (doorPosition < (DOOR_CLOSE_SET + 0.5)) {
     doorState = DOOR_STATE_CLOSED;
-    mode = MODE_MANUAL;
+    if (speedB == 0) {
+      mode = MODE_MANUAL;
+    }
   } 
     
 }

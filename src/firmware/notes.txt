@@ -46,3 +46,6 @@ set comm remote 0
 set wlan join 1
 save
 reboot
+
+
+mongoexport  --csv --port 2001 -c chickencoop -d chickencoop -q '{datetime:/160114-.*/}' -f timestamp,datetime,temperatureInterior,heater,temperatureExterior -o /tmp/a.csv
