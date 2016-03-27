@@ -1,7 +1,6 @@
 // this code is serious need of refactor
 #include <stdint.h>
 #include "WarmDirt.h"
-#include "PID_v1.h"
 
 /*
 /home/holla/arduino-1.6.5/hardware/tools/avr/bin/avrdude -C/home/holla/arduino-1.6.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.35:2000 -D -U flash:w:build-cli/arduino.hex:i
@@ -24,13 +23,13 @@ WarmDirt wd;
     TZ_adjust=-7;  echo T$(($(date +%s)+60*60*$TZ_adjust)) 
 */
 
-#define pinTrig 2
-#define pinEcho 3
-
 #define pinOverride  9
 #define pinUp       A4
 #define pinDown     A5
 #define pinUpLimit  11
+
+#define pinDoorOpen   3
+#define pinDoorClosed 2
 
 #define VPLUSR1     59000
 #define VPLUSR2     179000
@@ -58,6 +57,8 @@ int sunlightstate;
 #define DOOR_STATE_CLOSED           'c'
 #define DOOR_STATE_MANUAL           'm'
 #define DOOR_STATE_STOPPED          's'
+#define DOOR_STATE_LIMIT            'l'
+#define DOOR_STATE_MOTORRUNTIME     'R'
 #define DOOR_FULLY_OPEN_DISTANCE    24.2
 #define DOOR_OPEN_SET               18.0
 #define DOOR_CLOSE_SET              0.5
@@ -66,12 +67,7 @@ uint8_t doorState;
 double  doorKp            = 200;
 double  doorKi            = 0.1;
 double  doorKd            = 0.0;
-double  doorSetPoint;
-double  doorPosition;
 double  doorMotorSpeed;
-
-PID doorPID(&doorPosition, &doorMotorSpeed, &doorSetPoint, doorKp, doorKi, doorKd, DIRECT);
-
 
 uint32_t timeoutLightOff;
 uint32_t correlationID;
@@ -88,6 +84,16 @@ uint32_t lightUpdate;
 
 float temperatureInterior;
 
+uint32_t nextIdleStatusUpdate;
+uint32_t nextActivityUpdate;
+
+int8_t speedA = 0;
+int8_t speedB = 0;
+
+int motorRuntime;
+uint32_t motorStartTime;
+
+
 void printDigits(int digits) {
     // utility function for digital clock display: prints preceding colon and leading 0
     if (digits < 10)
@@ -103,17 +109,37 @@ void timePrint() {
     printDigits(second());
 }
 
-void doorOpen() {
-  doorSetPoint = DOOR_OPEN_SET;
+
+uint8_t doorPositionOpen() {
+  /* low is open */
+  return digitalRead(pinDoorOpen); 
 }
 
-void doorClose() {
-  doorSetPoint = DOOR_CLOSE_SET;
+uint8_t doorPositionClosed() {
+  /* high is closed */
+  return digitalRead(pinDoorClosed); 
 }
 
 uint8_t lightSwitch() {
   return wd.adcaverage(PINHEATEDDIRT,SAMPLES) < 500;
 }
+
+void doorSpeedSet(int speed) {
+    if ((speedB == 0) && (speed != 0)) {
+      motorStartTime = millis();
+    }
+    if (speed > 0) {
+      doorState = DOOR_STATE_OPENING;
+    }
+    if (speed < 0) {
+      doorState = DOOR_STATE_CLOSING;
+    }
+    if (speed == 0) {
+      doorState = DOOR_STATE_STOPPED;
+    }
+    speedB = wd.motorBSpeed(speed);
+}
+
 
 char *ftoa(char *a, double f, int precision) {
     long p[] = { 0, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000 };
@@ -129,20 +155,27 @@ char *ftoa(char *a, double f, int precision) {
     return ret;
 }
 
-uint32_t nextIdleStatusUpdate;
-uint32_t nextActivityUpdate;
+void doorOpen() {
+  if (!doorPositionOpen()) {
+      doorSpeedSet(100);
+      doorState = DOOR_STATE_OPENING;
+  }
+}
 
-int8_t speedA = 0;
-int8_t speedB = 0;
-
+void doorClose() {
+  if (!doorPositionClosed()) {
+      doorSpeedSet(-50);
+      doorState = DOOR_STATE_CLOSING;
+  }
+}
 
 void reset() {
     asm volatile ("jmp 0x3E00");        /* reset vector for 328P at this bootloader size */
 }
 
 void fullStop() {
-    speedB = 0;
-    wd.motorBSpeed(speedB);
+    doorSpeedSet(0);
+    doorState = DOOR_STATE_STOPPED;
 }
 
 bool getUp() {
@@ -180,60 +213,27 @@ float microsecondsToCentimeters(long microseconds) {
     //return microseconds / 29 / 2;
 }
 
-long getDuration() {
-    long duration, distance;
-    digitalWrite(pinTrig, LOW);
-    delayMicroseconds(2);
-    digitalWrite(pinTrig, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(pinTrig, LOW);
-    duration = pulseIn(pinEcho, HIGH, 4000);
-    // Serial.println(duration);
-    return duration;
-}
-
-long getDurationAve() {
-    long sum = 0;
-
-    for (int i = 0; i < AVECOUNT; i++) {
-      sum += getDuration();
-      delay(25);
-    }
-    sum = sum / AVECOUNT;
-    return sum;
-}
-
-float getDistance() {
-    float d;
-    long duration = getDurationAve();
-    d = microsecondsToInches(duration);
-    d = DOOR_FULLY_OPEN_DISTANCE - d;
-    //Serial.println(d);
-    return d;
-}
 
 void setup() {
     float d;
     Serial.begin(57600);
     Serial.println("WarmChicken begin");
-    doorState = DOOR_STATE_CLOSED;
-    sunlightstate = STATESUNLIGHTABOVETHRESHOLD;
-    doorSetPoint = 1.0;
-    doorPID.SetMode(AUTOMATIC);
-    doorPID.SetOutputLimits(-100,100);
 
-    timeoutLightOff = 0;
-    correlationID = 0;
-
-    pinMode(pinTrig, OUTPUT);
-    pinMode(pinEcho, INPUT);
+    pinMode(pinDoorOpen, INPUT);
+    pinMode(pinDoorClosed, INPUT);
 
     pinMode(pinOverride, INPUT);
     pinMode(pinUp, INPUT);
     pinMode(pinUpLimit, INPUT);
     pinMode(pinDown, INPUT);
 
-    mode = MODE_AUTO;
+    mode = MODE_MANUAL;
+    doorState = DOOR_STATE_STOPPED;
+    sunlightstate = STATESUNLIGHTABOVETHRESHOLD;
+
+    timeoutLightOff = 0;
+    correlationID = 0;
+    motorRuntime = 0;
 }
 
 void lightOnRamp() {
@@ -281,10 +281,6 @@ void commProcess(int c) {
         Serial.println("reset");
         delay(100);
         reset();
-        break;
-    case 'd':
-        Serial.println("distance");
-        Serial.println(getDistance());
         break;
     case 'a':
         Serial.print("a");
@@ -334,12 +330,6 @@ void commProcess(int c) {
         Serial.print("a = ");
         Serial.println(speedA);
         break;
-    case 'I':
-        doorSetPoint += 0.5;
-        break;
-    case 'K':
-        doorSetPoint -= 0.5;
-        break;
     case 'l':
         speedA -= MOTORSPEEDINC;
         speedA = wd.motorASpeed(speedA);
@@ -349,9 +339,8 @@ void commProcess(int c) {
     case ' ':
         Serial.println("full stop");
         speedA = 0;
-        speedB = 0;
         wd.motorASpeed(speedA);
-        wd.motorBSpeed(speedB);
+        fullStop();
         wd.stepperDisable();
         break;
     case '0':                  // avrdude sends 0-space 
@@ -394,7 +383,7 @@ void commProcess(int c) {
     }
 }
 
-void commLoop() {
+void loopComm() {
     int c;
     if (Serial.available()) {
         c = Serial.read();
@@ -420,32 +409,33 @@ void printStatusDelim() {
     Serial.print("|");
 
     switch (doorState) {
-    case DOOR_STATE_CLOSED:
-        Serial.print("closed");
-        break;
-    case DOOR_STATE_OPENING:
-        Serial.print("opening");
-        break;
-    case DOOR_STATE_STOPPED:
-        Serial.print("stopped");
-        break;
-    case DOOR_STATE_OPEN:
-        Serial.print("open");
-        break;
-    case DOOR_STATE_CLOSING:
-        Serial.print("closing");
-        break;
-    case DOOR_STATE_MANUAL:
-        Serial.print("manual");
-        break;
+      case DOOR_STATE_CLOSED:
+          Serial.print("closed");
+          break;
+      case DOOR_STATE_OPENING:
+          Serial.print("opening");
+          break;
+      case DOOR_STATE_STOPPED:
+          Serial.print("stopped");
+          break;
+      case DOOR_STATE_OPEN:
+          Serial.print("open");
+          break;
+      case DOOR_STATE_CLOSING:
+          Serial.print("closing");
+          break;
+      case DOOR_STATE_MANUAL:
+          Serial.print("manual");
+          break;
+      case DOOR_STATE_LIMIT:
+          Serial.print("limit");
+          break;
     }
 
     Serial.print("|");
     Serial.print(speedA, DEC);
     Serial.print("|");
     Serial.print((char)sunlightstate);
-    Serial.print("|");
-    Serial.print(getDistance());
     Serial.println();
 }
 
@@ -500,7 +490,56 @@ void printStatusJSON() {
     }
     Serial.print("\"");
 
-    Serial.print(",\"overridePosition\":\"");
+
+
+    Serial.print(",\"doorMotorSpeed\":");
+    Serial.print(speedB);
+    Serial.print("");
+
+    Serial.print(",\"doorState\":\"");
+    switch (doorState) {
+      case DOOR_STATE_CLOSED:
+          Serial.print("closed");
+          break;
+      case DOOR_STATE_OPENING:
+          Serial.print("opening");
+          break;
+      case DOOR_STATE_STOPPED:
+          Serial.print("stopped");
+          break;
+      case DOOR_STATE_OPEN:
+          Serial.print("open");
+          break;
+      case DOOR_STATE_CLOSING:
+          Serial.print("closing");
+          break;
+      case DOOR_STATE_MANUAL:
+          Serial.print("manual");
+          break;
+      case DOOR_STATE_LIMIT:
+          Serial.print("limit");
+          break;
+    }
+    Serial.print("\"");
+
+    Serial.print(",\"heater\":");
+    Serial.print((int)wd.getLoad0On());
+
+    Serial.print(",\"switchLight\":");
+    if (lightSwitch()) {
+        Serial.print(1);
+    } else {
+        Serial.print(0);
+    }
+
+    Serial.print(",\"switchMode\":");
+    if (digitalRead(pinOverride)) {
+      Serial.print("\"override\"");
+    } else {
+      Serial.print("\"auto\"");
+    }
+
+    Serial.print(",\"switchOverride\":\"");
     if (getUp()) {
         Serial.print("up");
     } else {
@@ -512,63 +551,28 @@ void printStatusJSON() {
     }
     Serial.print("\"");
 
-    Serial.print(",\"upperLimitSwitch\":");
+    Serial.print(",\"switchLimitUpper\":");
     if (getUpLimit()) {
         Serial.print(1);
     } else {
         Serial.print(0);
     }
 
-    Serial.print(",\"doorMotorSpeed\":");
-    Serial.print(speedB);
-    Serial.print("");
+    Serial.print(",\"switchDoorOpen\":");
+    Serial.print((int)doorPositionOpen());
+    Serial.print(",\"switchDoorClosed\":");
+    Serial.print((int)doorPositionClosed());
 
-    Serial.print(",\"doorState\":\"");
-    switch (doorState) {
-    case DOOR_STATE_CLOSED:
-        Serial.print("closed");
-        break;
-    case DOOR_STATE_OPENING:
-        Serial.print("opening");
-        break;
-    case DOOR_STATE_STOPPED:
-        Serial.print("stopped");
-        break;
-    case DOOR_STATE_OPEN:
-        Serial.print("open");
-        break;
-    case DOOR_STATE_CLOSING:
-        Serial.print("closing");
-        break;
-    case DOOR_STATE_MANUAL:
-        Serial.print("manual");
-        break;
-    }
-    Serial.print("\"");
-
-    Serial.print(",\"lightSwitch\":");
-        if (lightSwitch()) {
-            Serial.print(1);
-        } else {
-            Serial.print(0);
-        }
-
-    Serial.print(",\"doorPosition\":");
-    Serial.print(doorPosition,1);
-
-    Serial.print(",\"doorSetPoint\":");
-    Serial.print(doorSetPoint,1);
-
-    Serial.print(",\"heater\":");
-    Serial.print((int)wd.getLoad0On());
+    Serial.print(",\"motorRuntime\":");
+    Serial.print(motorRuntime);
 
     Serial.println("}");
 }
 
 void loopStatus() {
+    int i;
     char buffer[30];
     uint32_t now = millis();
-    int i;
 
     if (now > nextActivityUpdate) {
         wd.activityToggle();
@@ -577,7 +581,11 @@ void loopStatus() {
 
     if (now > nextIdleStatusUpdate) {
         printStatusJSON();
-        nextIdleStatusUpdate = millis() + STATUSUPDATEINVTERVAL;
+        if (speedB) {
+          nextIdleStatusUpdate = millis() + 500; // if door is moving, send 2 updates a sec
+        } else {
+          nextIdleStatusUpdate = millis() + STATUSUPDATEINVTERVAL;
+        }
     }
 }
 
@@ -593,126 +601,96 @@ void loopLight() {
     if (doorState == DOOR_STATE_OPENING) {
         lightOff();
     }
-      
-
-/*
-    int l = wd.getLightSensor();
-
-    if (l > (SUNLIGHTTHRESHOLD + 50)) {
-      timeoutLightOff = 0;  // this is kinda sloppy, should use a state var here
-    }
-
-    if ((l < SUNLIGHTTHRESHOLD) && (timeoutLightOff == 0)) {
-       timeoutLightOff = millis() + LIGHTONTIME;
-       lightOn();
-    }
-    if (millis() > timeoutLightOff) {
-        lightOff();
-    }
-*/
 }
-
-/*
-void loopTime() {
-    if ((hour() == 6) && (minute() == 0) && (second() == 0)) {
-        lightOn();
-    }
-    if ((hour() == 8) && (minute() == 0) && (second() == 0)) {
-        lightOff();
-    }
-    if ((hour() == 16) && (minute() == 11) && (second() == 0)) {
-        lightOn();
-    }
-    if ((hour() == 20) && (minute() == 0) && (second() == 0)) {
-        lightOff();
-    }
-}
-*/
 
 void loopOverride() {
     speedB = 0;
 
     if (getUp() && (!getUpLimit())) {
-        speedB = 100;
+        doorSpeedSet(100);
+    } else {
+      if (getDown()) {
+          doorSpeedSet(-100);
+      } else {
+        doorSpeedSet(0);
+      }
     }
-    if (getDown()) {
-        speedB = -100;
-    }
-    speedB = wd.motorBSpeed(speedB);
 }
 
+
+int lastUpLimit;
 void loopDoor() {
-    int i, l = wd.getLightSensor();
+    int lightLevel = wd.getLightSensor();
+    int limit = getUpLimit();
+
+    if ((lastUpLimit == 0) && limit) {
+      doorState = DOOR_STATE_LIMIT;
+      if (speedB > 0) {
+        doorSpeedSet(-100);
+      } else {
+        if (speedB < 0) {
+          doorSpeedSet(100);
+        }
+      }
+      delay(1000); 
+      fullStop();
+    }
+    lastUpLimit = getUpLimit();
+
+    switch (doorState) {
+      case DOOR_STATE_OPEN:
+        break;
+      case DOOR_STATE_CLOSED:
+        break;
+      case DOOR_STATE_OPENING:
+        if (doorPositionOpen()) {
+          fullStop();
+          doorState = DOOR_STATE_OPEN;
+        }
+        break;
+      case DOOR_STATE_CLOSING:
+        if (doorPositionClosed()) {
+          delay(2000);
+          fullStop();
+          doorState = DOOR_STATE_CLOSED;
+        }
+        break;
+      case DOOR_STATE_STOPPED:
+        break;
+      case DOOR_STATE_LIMIT:
+        break;
+      case DOOR_STATE_MANUAL:
+        break;
+    }
 
     if (mode == MODE_AUTO) {
-      if (l > LIGHTLEVELDAY) {
+      if ((lightLevel > LIGHTLEVELDAY) && (doorState == DOOR_STATE_CLOSED)) {
         doorOpen();
       } else {
-          if (l < LIGHTLEVELNIGHT) {
+          if ((lightLevel < LIGHTLEVELNIGHT) && (doorState != DOOR_STATE_CLOSED)) {
             doorClose();
           }
       }
-
-    if (doorPosition > 0.00) {
-      if (abs(doorPosition - doorSetPoint) > 0.30) {
-        doorPID.Compute();
-      } else {
-        doorMotorSpeed = 0;
-        doorPID.Initialize();
-      }
     }
 
-    if (!getUpLimit()) {
-      speedB = wd.motorBSpeed(int(doorMotorSpeed));
+    // this handles reset condition, or manual
+    if (doorPositionOpen()) {
+      doorState = DOOR_STATE_OPEN;
     }
-  }
-
-  if ((doorPosition > DOOR_CLOSE_SET) && (doorPosition < DOOR_OPEN_SET)) {
-    if (speedB > 0) {
-      doorState = DOOR_STATE_OPENING;
+    if (doorPositionClosed()) {
+      doorState = DOOR_STATE_CLOSED;
     }
-    if (speedB < 0) {
-      doorState = DOOR_STATE_CLOSING;
-    }
-    if (speedB == 0) {
-      doorState = DOOR_STATE_STOPPED;
-    }
-  }
-  if (doorPosition > (DOOR_OPEN_SET - 0.5)) {
-    doorState = DOOR_STATE_OPEN;
-  } 
-  if (doorPosition < (DOOR_CLOSE_SET + 0.5)) {
-    doorState = DOOR_STATE_CLOSED;
-    if (speedB == 0) {
-      mode = MODE_MANUAL;
-    }
-  } 
-    
 }
 
 void loopHeater() {
-    if ((temperatureInterior < HEATERTHRESHOLD) && (doorPosition < 1.0)) {
+    if ((temperatureInterior < HEATERTHRESHOLD) && (doorState == DOOR_STATE_CLOSED)) {
       wd.load0On();
     } else {
       wd.load0Off();
     }
 }
 
-int lastUpLimit;
-
-void loop() {
-    loopStatus();
-    commLoop();
-    loopLight();
-    doorPosition = getDistance();
-    loopDoor();
-    loopHeater();
-
-    if ((lastUpLimit == 0) && getUpLimit()) {
-      fullStop();
-    }
-    lastUpLimit = getUpLimit();
-
+void loopMode() {
     switch (mode) { 
       case MODE_AUTO:
         if (digitalRead(pinOverride)) {
@@ -730,10 +708,24 @@ void loop() {
         } 
         loopOverride();
     }
+}
 
-    if ((temperatureInterior < BADSENSORTHRESHOLD) && (mode == MODE_AUTO)) {
-      fullStop();
-      mode = MODE_MANUAL;
-    }
+void loopMotor() {
+  if (speedB) {
+    motorRuntime = (millis() - motorStartTime) / 1000;
+  }
+  if (motorRuntime > 30) {
+    // fullStop();
+  }
+}
+
+void loop() {
+    loopMode();
+    loopStatus();
+    loopComm();
+    loopDoor();
+    loopHeater();
+    loopLight();
+    loopMotor();
 }
 
