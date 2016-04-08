@@ -76,11 +76,11 @@ if (Meteor.isServer) {
                         Fiber(function() {
                             //redisCollection.set('batteryVoltage',d.batteryVoltage);
                             Object.keys(d).forEach(function(key) {
-                                redisCollection.set("warmChicken."+key,d[key]);
+                                redisCollection.setex("warmChicken."+key,120,d[key]);
                             });
-                            redisCollection.set("warmChicken.updateDay",moment(new Date()).format('YYMMDD'));
-                            redisCollection.set("warmChicken.updateTime", moment(new Date()).format('HHmmss'));
-                            redisCollection.set("warmChicken.updateTimeSeconds", new Date().getTime()/1000);
+                            redisCollection.setex("warmChicken.updateDay",120,moment(new Date()).format('YYMMDD'));
+                            redisCollection.setex("warmChicken.updateTime",120,moment(new Date()).format('HHmmss'));
+                            redisCollection.setex("warmChicken.updateTimeSeconds",120,new Date().getTime()/1000);
                         }).run();
                         // console.log(d);
                     } catch(err) {

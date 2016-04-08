@@ -28,20 +28,23 @@ WarmDirt wd;
 #define pinDown     A5
 #define pinUpLimit  11
 
-#define pinDoorOpen   3
-#define pinDoorClosed 2
+#define pinDoorOpen   2
+#define pinDoorClosed 3
 
 #define VPLUSR1     59000
 #define VPLUSR2     179000
 #define VPLUSSCALE  0.019697    // (((5.0/1024.0)/VPLUSR2)*(VPLUSR1+VPLUSR2))
 
-#define STATUSUPDATEINVTERVAL   2500
+#define STATUSUPDATEINVTERVAL   1000
 #define ACTIVITYUPDATEINVTERVAL 500
+#define RADIOREBOOTINVTERVAL    3600000L
 
 int sunlightstate;
 #define SUNLIGHTTHRESHOLD              500
 #define STATESUNLIGHTABOVETHRESHOLD    'L'
 #define STATESUNLIGHTBELOWTHRESHOLD    'D'
+
+#define MOTORRUNTIMEMAX 60
 
 #define LIGHTLEVELDAY                50
 #define LIGHTLEVELNIGHT              20
@@ -86,6 +89,7 @@ float temperatureInterior;
 
 uint32_t nextIdleStatusUpdate;
 uint32_t nextActivityUpdate;
+uint32_t nextRadioReboot;
 
 int8_t speedA = 0;
 int8_t speedB = 0;
@@ -112,7 +116,7 @@ void timePrint() {
 
 uint8_t doorPositionOpen() {
   /* low is open */
-  return digitalRead(pinDoorOpen); 
+  return !digitalRead(pinDoorOpen); 
 }
 
 uint8_t doorPositionClosed() {
@@ -130,12 +134,14 @@ void doorSpeedSet(int speed) {
     }
     if (speed > 0) {
       doorState = DOOR_STATE_OPENING;
-    }
-    if (speed < 0) {
-      doorState = DOOR_STATE_CLOSING;
-    }
-    if (speed == 0) {
-      doorState = DOOR_STATE_STOPPED;
+    } else {
+      if (speed < 0) {
+        doorState = DOOR_STATE_CLOSING;
+      } else {
+        if (speed == 0) {
+          doorState = DOOR_STATE_STOPPED;
+        }
+      }
     }
     speedB = wd.motorBSpeed(speed);
 }
@@ -220,7 +226,9 @@ void setup() {
     Serial.println("WarmChicken begin");
 
     pinMode(pinDoorOpen, INPUT);
+    digitalWrite(pinDoorOpen, HIGH); // enable pull up
     pinMode(pinDoorClosed, INPUT);
+    digitalWrite(pinDoorClosed, HIGH); // enable pull up
 
     pinMode(pinOverride, INPUT);
     pinMode(pinUp, INPUT);
@@ -230,10 +238,18 @@ void setup() {
     mode = MODE_MANUAL;
     doorState = DOOR_STATE_STOPPED;
     sunlightstate = STATESUNLIGHTABOVETHRESHOLD;
+    nextRadioReboot = millis() + RADIOREBOOTINVTERVAL;
 
     timeoutLightOff = 0;
     correlationID = 0;
     motorRuntime = 0;
+
+    if (doorPositionOpen()) {
+      doorState = DOOR_STATE_OPEN;
+    }
+    if (doorPositionClosed()) {
+      doorState = DOOR_STATE_CLOSED;
+    }
 }
 
 void lightOnRamp() {
@@ -447,36 +463,36 @@ void printStatusJSON() {
     timePrint();
     Serial.print("\"");
 */
-    Serial.print("{\"correlationID\":");
+    Serial.print("{\"system-id-correlation\":");
     Serial.print(correlationID++);
 
-    Serial.print(",\"uptime\":");
+    Serial.print(",\"system-uptime\":");
     Serial.print((unsigned long)(millis()/1000));
 
-    Serial.print(",\"temperatureInterior\":");
+    Serial.print(",\"temperature-interior\":");
     temperatureInterior = wd.getBoxInteriorTemperature() - 10.0;  // why - 10?
     Serial.print(temperatureInterior, 1);
     Serial.print("");
 
-    Serial.print(",\"temperatureExterior\":");
+    Serial.print(",\"temperature-exterior\":");
     v = wd.getBoxExteriorTemperature() - 10.0;
     Serial.print(v, 1);
     Serial.print("");
 
-    Serial.print(",\"lightLevelExterior\":");
+    Serial.print(",\"light-level-exterior\":");
     v = wd.getLightSensor();
     Serial.print((int)v);
     Serial.print("");
 
-    Serial.print(",\"lightLevelInterior\":");
+    Serial.print(",\"light-level-interior\":");
     Serial.print(speedA, DEC);
     Serial.print("");
 
-    Serial.print(",\"batteryVoltage\":");
+    Serial.print(",\"battery-voltage\":");
     v = getVPlus();
     Serial.print(v, 2);
 
-    Serial.print(",\"mode\":\"");
+    Serial.print(",\"system-mode\":\"");
     switch (mode) {
       case MODE_AUTO:
         Serial.print("auto");
@@ -492,11 +508,11 @@ void printStatusJSON() {
 
 
 
-    Serial.print(",\"doorMotorSpeed\":");
+    Serial.print(",\"door-motor-speed\":");
     Serial.print(speedB);
     Serial.print("");
 
-    Serial.print(",\"doorState\":\"");
+    Serial.print(",\"door-state\":\"");
     switch (doorState) {
       case DOOR_STATE_CLOSED:
           Serial.print("closed");
@@ -522,24 +538,24 @@ void printStatusJSON() {
     }
     Serial.print("\"");
 
-    Serial.print(",\"heater\":");
+    Serial.print(",\"heater-power\":");
     Serial.print((int)wd.getLoad0On());
 
-    Serial.print(",\"switchLight\":");
+    Serial.print(",\"switch-light\":");
     if (lightSwitch()) {
         Serial.print(1);
     } else {
         Serial.print(0);
     }
 
-    Serial.print(",\"switchMode\":");
+    Serial.print(",\"switch-runstop\":");
     if (digitalRead(pinOverride)) {
       Serial.print("\"override\"");
     } else {
       Serial.print("\"auto\"");
     }
 
-    Serial.print(",\"switchOverride\":\"");
+    Serial.print(",\"switch-jog\":\"");
     if (getUp()) {
         Serial.print("up");
     } else {
@@ -551,19 +567,19 @@ void printStatusJSON() {
     }
     Serial.print("\"");
 
-    Serial.print(",\"switchLimitUpper\":");
+    Serial.print(",\"switch-limit-upper\":");
     if (getUpLimit()) {
         Serial.print(1);
     } else {
         Serial.print(0);
     }
 
-    Serial.print(",\"switchDoorOpen\":");
+    Serial.print(",\"switch-door-open\":");
     Serial.print((int)doorPositionOpen());
-    Serial.print(",\"switchDoorClosed\":");
+    Serial.print(",\"switch-door-closed\":");
     Serial.print((int)doorPositionClosed());
 
-    Serial.print(",\"motorRuntime\":");
+    Serial.print(",\"door-motor-runtime\":");
     Serial.print(motorRuntime);
 
     Serial.println("}");
@@ -650,7 +666,7 @@ void loopDoor() {
         break;
       case DOOR_STATE_CLOSING:
         if (doorPositionClosed()) {
-          delay(2000);
+          delay(3000);
           fullStop();
           doorState = DOOR_STATE_CLOSED;
         }
@@ -673,13 +689,6 @@ void loopDoor() {
       }
     }
 
-    // this handles reset condition, or manual
-    if (doorPositionOpen()) {
-      doorState = DOOR_STATE_OPEN;
-    }
-    if (doorPositionClosed()) {
-      doorState = DOOR_STATE_CLOSED;
-    }
 }
 
 void loopHeater() {
@@ -714,8 +723,20 @@ void loopMotor() {
   if (speedB) {
     motorRuntime = (millis() - motorStartTime) / 1000;
   }
-  if (motorRuntime > 30) {
-    // fullStop();
+  if (motorRuntime > MOTORRUNTIMEMAX) {
+    fullStop();
+  }
+}
+
+void loopRadio() {
+  if (millis() > nextRadioReboot) {
+    Serial.println("radio reboot");
+    delay(1000);
+    Serial.print("$$$");
+    delay(1000);
+    Serial.print("REBOOT\r");
+    nextRadioReboot = millis() + RADIOREBOOTINVTERVAL;
+    delay(5000);
   }
 }
 
@@ -727,5 +748,6 @@ void loop() {
     loopHeater();
     loopLight();
     loopMotor();
+    // loopRadio();
 }
 

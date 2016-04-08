@@ -45,6 +45,7 @@ con:
 
 push: all
 	/usr/bin/avrdude -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.35:2000 -D -U flash:w:build-cli/arduino.hex:i
+	telnet 192.168.0.35 2000
 
 usb: all
 	/usr/bin/avrdude -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P /dev/ttyUSB0 -b57600 -D -U flash:w:build-cli/arduino.hex:i
