@@ -49,3 +49,29 @@ reboot
 
 
 mongoexport  --csv --port 2001 -c chickencoop -d chickencoop -q '{datetime:/160114-.*/}' -f timestamp,datetime,temperatureInterior,heater,temperatureExterior -o /tmp/a.csv
+
+
+
+json print out
+{"systemCorrelationId":434,"systemUptime":573,"temperatureInterior":32.6,"temperatureExterior":29.0,"lightLevelExterior":413,"lightLevelInterior":0,"batteryVoltage":12.57,"systemMode":"auto","doorMotorSpeed":0,"doorState":"open","heaterPower":0,"switchLight":0,"switchRunStop":"auto","switchJog":"off","switchLimitUpper":0,"switchDoorOpen":1,"switchDoorClosed":0,"doorMotorRuntime":0}
+
+{
+    "systemCorrelationId": 434,
+    "systemUptime": 573,
+    "temperatureInterior": 32.6,
+    "temperatureExterior": 29,
+    "lightLevelExterior": 413,
+    "lightLevelInterior": 0,
+    "batteryVoltage": 12.57,
+    "systemMode": "auto",
+    "doorMotorSpeed": 0,
+    "doorState": "open",
+    "heaterPower": 0,
+    "switchLight": 0,
+    "switchRunStop": "auto",
+    "switchJog": "off",
+    "switchLimitUpper": 0,
+    "switchDoorOpen": 1,
+    "switchDoorClosed": 0,
+    "doorMotorRuntime": 0
+}

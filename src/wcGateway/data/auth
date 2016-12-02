@@ -1,0 +1,6 @@
+const char *ssid = "zeeboo";
+const char *password = "zaralily";
+
+#define LOCATION "16207 Warm Chicken"
+String apiKey = "MBDU6EZSJNU9PE0L";
+

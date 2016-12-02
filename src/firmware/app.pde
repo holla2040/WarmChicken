@@ -235,7 +235,7 @@ void setup() {
     pinMode(pinUpLimit, INPUT);
     pinMode(pinDown, INPUT);
 
-    mode = MODE_MANUAL;
+    mode = MODE_AUTO;
     doorState = DOOR_STATE_STOPPED;
     sunlightstate = STATESUNLIGHTABOVETHRESHOLD;
     nextRadioReboot = millis() + RADIOREBOOTINVTERVAL;
@@ -463,36 +463,36 @@ void printStatusJSON() {
     timePrint();
     Serial.print("\"");
 */
-    Serial.print("{\"system-id-correlation\":");
+    Serial.print("{\"systemCorrelationId\":");
     Serial.print(correlationID++);
 
-    Serial.print(",\"system-uptime\":");
+    Serial.print(",\"systemUptime\":");
     Serial.print((unsigned long)(millis()/1000));
 
-    Serial.print(",\"temperature-interior\":");
+    Serial.print(",\"temperatureInterior\":");
     temperatureInterior = wd.getBoxInteriorTemperature() - 10.0;  // why - 10?
     Serial.print(temperatureInterior, 1);
     Serial.print("");
 
-    Serial.print(",\"temperature-exterior\":");
+    Serial.print(",\"temperatureExterior\":");
     v = wd.getBoxExteriorTemperature() - 10.0;
     Serial.print(v, 1);
     Serial.print("");
 
-    Serial.print(",\"light-level-exterior\":");
+    Serial.print(",\"lightLevelExterior\":");
     v = wd.getLightSensor();
     Serial.print((int)v);
     Serial.print("");
 
-    Serial.print(",\"light-level-interior\":");
+    Serial.print(",\"lightLevelInterior\":");
     Serial.print(speedA, DEC);
     Serial.print("");
 
-    Serial.print(",\"battery-voltage\":");
+    Serial.print(",\"batteryVoltage\":");
     v = getVPlus();
     Serial.print(v, 2);
 
-    Serial.print(",\"system-mode\":\"");
+    Serial.print(",\"systemMode\":\"");
     switch (mode) {
       case MODE_AUTO:
         Serial.print("auto");
@@ -508,11 +508,11 @@ void printStatusJSON() {
 
 
 
-    Serial.print(",\"door-motor-speed\":");
+    Serial.print(",\"doorMotorSpeed\":");
     Serial.print(speedB);
     Serial.print("");
 
-    Serial.print(",\"door-state\":\"");
+    Serial.print(",\"doorState\":\"");
     switch (doorState) {
       case DOOR_STATE_CLOSED:
           Serial.print("closed");
@@ -538,24 +538,24 @@ void printStatusJSON() {
     }
     Serial.print("\"");
 
-    Serial.print(",\"heater-power\":");
+    Serial.print(",\"heaterPower\":");
     Serial.print((int)wd.getLoad0On());
 
-    Serial.print(",\"switch-light\":");
+    Serial.print(",\"switchLight\":");
     if (lightSwitch()) {
         Serial.print(1);
     } else {
         Serial.print(0);
     }
 
-    Serial.print(",\"switch-runstop\":");
+    Serial.print(",\"switchRunStop\":");
     if (digitalRead(pinOverride)) {
       Serial.print("\"override\"");
     } else {
       Serial.print("\"auto\"");
     }
 
-    Serial.print(",\"switch-jog\":\"");
+    Serial.print(",\"switchJog\":\"");
     if (getUp()) {
         Serial.print("up");
     } else {
@@ -567,19 +567,19 @@ void printStatusJSON() {
     }
     Serial.print("\"");
 
-    Serial.print(",\"switch-limit-upper\":");
+    Serial.print(",\"switchLimitUpper\":");
     if (getUpLimit()) {
         Serial.print(1);
     } else {
         Serial.print(0);
     }
 
-    Serial.print(",\"switch-door-open\":");
+    Serial.print(",\"switchDoorOpen\":");
     Serial.print((int)doorPositionOpen());
-    Serial.print(",\"switch-door-closed\":");
+    Serial.print(",\"switchDoorClosed\":");
     Serial.print((int)doorPositionClosed());
 
-    Serial.print(",\"door-motor-runtime\":");
+    Serial.print(",\"doorMotorRuntime\":");
     Serial.print(motorRuntime);
 
     Serial.println("}");
