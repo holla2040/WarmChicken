@@ -52,12 +52,63 @@ unsigned int  switchDoorOpen;       // 1,
 unsigned int  switchDoorClosed;     // 0,
 unsigned int  doorMotorRuntime;     // 0
 
-#define HTMLLEN 800
+#define HTMLLEN 1000
 void handleRoot() {
+  String postStr = "<head><meta http-equiv='refresh' content='2'/><title>";
+  postStr += String(LOCATION);  
+  postStr += "Data</title><style>body { }</style></head><body><pre>";
+  postStr += "location:             ";
+  postStr += String(LOCATION);
+  postStr += "<hr>batteryVoltage:       ";
+  postStr += String(batteryVoltage);
+
+  postStr += "<br>doorMotorRuntime:     ";
+  postStr += String(doorMotorRuntime);
+  postStr += "<br>doorMotorSpeed:       ";
+  postStr += String(doorMotorSpeed);
+  postStr += "<br>doorState:            ";
+  postStr += String(doorState);
+  postStr += "<br>doorStatef:           ";
+  postStr += String(doorStatef);
+  
+  postStr += "<br>heaterPower:          ";
+  postStr += String(heaterPower);
+  postStr += "<br>lightLevelExterior    ";
+  postStr += String(lightLevelExterior);
+  postStr += "<br>lightLevelInterior:   ";
+  postStr += String(lightLevelInterior);
+  postStr += "<br>switchDoorClosed:     ";
+  postStr += String(switchDoorClosed);
+  postStr += "<br>switchDoorOpen:       ";
+  postStr += String(switchDoorOpen);
+  postStr += "<br>switchJog:            ";
+  postStr += String(switchJog);
+  postStr += "<br>switchLight:          ";
+  postStr += String(switchLight);
+  
+  postStr += "<br>switchLimitUpper:     ";
+  postStr += String(switchLimitUpper);
+  postStr += "<br>switchRunStop:        ";
+  postStr += String(switchRunStop);
+  postStr += "<br>systemCorrelationId:  ";
+  postStr += String(systemCorrelationId);
+  postStr += "<br>systemMode:           ";
+  postStr += String(systemMode);
+  postStr += "<br>systemUptime:         ";
+  postStr += String(systemUptime);
+  postStr += "<br>temperatureExterior:  ";
+  postStr += String(temperatureExterior);
+  postStr += "<br>temperatureInterior:  ";
+  postStr += String(temperatureInterior);
+  
+  httpd.send ( 200, "text/html", postStr);
+}
+
+void handleRootold() {
   char temp[HTMLLEN];
   snprintf(temp, HTMLLEN, "<html>\
   <head>\
-    <meta http-equiv='refresh' content='5'/>\
+    <meta http-equiv='refresh' content='2'/>\
     <title>%s Data</title>\
     <style>\
       body { }\
@@ -84,7 +135,7 @@ systemCorrelationId:  %lu<br>\
 systemMode:           %s<br>\
 systemUptime:         %lu<br>\
 temperatureExterior:  %f<br>\
-temperatureInterior:  %f<br>\   
+temperatureInterior:  %f<br>\
    </pre>\
   </body>\
 </html>", LOCATION, LOCATION,
@@ -131,8 +182,13 @@ void handleNotFound() {
 
 void setup(void) {
   Serial.begin(57600);
+  if (debug) {
+    Serial.println("");
+    Serial.println("\n\nwcGateway begin");
+  }
+
   WiFi.begin(ssid, password );
-  if (debug) Serial.println("");
+
 
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
@@ -151,6 +207,8 @@ void setup(void) {
   if (MDNS.begin(LOCATION) ) {
     if (debug) Serial.println("MDNS responder started");
   }
+
+  varInit();
 
   httpd.on ("/", handleRoot);
   httpd.on ("/inline", []() {
@@ -174,7 +232,7 @@ void post() {
     postStr += "&field2=";
     postStr += String(batteryVoltage);
     postStr += "&field3=";
-    postStr += String(doorState);
+    postStr += String(doorStatef);
     postStr += "&field4=";
     postStr += String(heaterPower);
     postStr += "&field5=";
@@ -185,6 +243,7 @@ void post() {
     postStr += String(temperatureExterior);
     //    postStr += "&field8=";
     //    postStr += String(other);
+    if (debug) Serial.println(postStr);
 
     tsClient.print("POST /update HTTP/1.1\n");
     tsClient.print("Host: api.thingspeak.com\n");
@@ -195,7 +254,6 @@ void post() {
     tsClient.print(postStr.length());
     tsClient.print("\n\n");
     tsClient.print(postStr);
-    if (debug) Serial.println(postStr);
   }
   if (debug) Serial.println("post");
 }
@@ -203,7 +261,7 @@ void post() {
 char c;
 
 void jsonProcess() {
-  StaticJsonBuffer<350> jsonBuffer;
+  StaticJsonBuffer<400> jsonBuffer;
   JsonObject& root = jsonBuffer.parseObject(json);
 
   if (!root.success()) {
@@ -236,10 +294,10 @@ void jsonProcess() {
   switchDoorClosed = root["switchDoorClosed"];
   doorMotorRuntime = root["doorMotorRuntime"];
 
-  strcpy(systemMode,root["systemMode"]);
-  strcpy(doorState,root["doorState"]);
-  strcpy(switchRunStop,root["switchRunStop"]);
-  strcpy(switchJog,root["switchJog"]);
+  strcpy(systemMode, root["systemMode"]);
+  strcpy(doorState, root["doorState"]);
+  strcpy(switchRunStop, root["switchRunStop"]);
+  strcpy(switchJog, root["switchJog"]);
 
   if (debug) {
     Serial.print("jsonProcess ");
@@ -298,9 +356,36 @@ void loop(void) {
   loopTelnetd();
 }
 
+void varInit(void) {
+  if (debug) {
+    Serial.println("varInit");
+  }
+
+  batteryVoltage        = 0;
+  doorMotorRuntime      = 0;
+  doorMotorSpeed        = 0;
+  strcat(doorState, "???");
+  doorStatef            = 0.0;
+  heaterPower           = 0;
+  lightLevelExterior    = 0;
+  lightLevelInterior    = 0;
+  switchDoorClosed      = 0;
+  switchDoorOpen        = 0;
+  strcat(switchJog, "???");
+  switchLight           = 0;
+  switchLimitUpper      = 0;
+  strcat(switchRunStop, "???");
+  systemCorrelationId   = 0;
+  strcat(systemMode, "???");
+  systemUptime          = 0;
+  temperatureExterior   = 0;
+  temperatureInterior   = 0;
+}
+
 /*
 
   what firmware sends
+  {"systemCorrelationId":222,"systemUptime":271,"temperatureInterior":68.8,"temperatureExterior":88.6,"lightLevelExterior":977,"lightLevelInterior":0,"batteryVoltage":13.59,"systemMode":"auto","doorMotorSpeed":0,"doorState":"open","heaterPower":0,"switchLight":0,"switchRunStop":"auto","switchJog":"off","switchLimitUpper":0,"switchDoorOpen":1,"switchDoorClosed":0,"doorMotorRuntime":35}
 
   {
   "systemCorrelationId": 434,

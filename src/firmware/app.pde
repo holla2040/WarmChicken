@@ -46,8 +46,8 @@ int sunlightstate;
 
 #define MOTORRUNTIMEMAX 60
 
-#define LIGHTLEVELDAY                50
-#define LIGHTLEVELNIGHT              20
+#define LIGHTLEVELDAY                200
+#define LIGHTLEVELNIGHT              30
 
 #define HEATERTHRESHOLD             20
 #define BADSENSORTHRESHOLD          20

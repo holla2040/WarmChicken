@@ -29,7 +29,7 @@ set uart flow 0x00
 save
 reboot
 
-
+$$$ enter command mode
 
 RN-XV config
 factory RESET

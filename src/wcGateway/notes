@@ -1,0 +1,6 @@
+socat  /dev/ttyUSB0,b57600,raw  TCP:192.168.0.35:2000
+
+json message
+{"systemCorrelationId":222,"systemUptime":271,"temperatureInterior":68.8,"temperatureExterior":88.6,"lightLevelExterior":977,"lightLevelInterior":0,"batteryVoltage":13.59,"systemMode":"auto","doorMotorSpeed":0,"doorState":"open","heaterPower":0,"switchLight":0,"switchRunStop":"auto","switchJog":"off","switchLimitUpper":0,"switchDoorOpen":1,"switchDoorClosed":0,"doorMotorRuntime":35}
+
+curl http://192.168.0.135/
