@@ -22,8 +22,7 @@ var channelsLoaded = 0;
 // fieldList shows which field you want to load, and which axis to display that field on, 
 // the 'T' Temperature left axis, or the 'O' Other right axis.
 var channelKeys =[];
-//channelKeys.push({channelNumber:197763, name:'WarmChicken',key:'70NZP8T4WMIUB92W', fieldList:[{field:6,axis:'T'},{field:7,axis:'T'},{field:3,axis:'O'},{field:4,axis:'O'},{field:2,axis:'O'},{field:5,axis:'L'}]});
-channelKeys.push({channelNumber:197763, name:'WarmChicken',key:'70NZP8T4WMIUB92W', fieldList:[{field:6,axis:'T'},{field:7,axis:'T'},{field:3,axis:'O'},{field:4,axis:'O'},{field:2,axis:'O'}]});
+channelKeys.push({channelNumber:197763, name:'WarmChicken',key:'70NZP8T4WMIUB92W', fieldList:[{field:6,axis:'T'},{field:7,axis:'T'},{field:3,axis:'O'},{field:4,axis:'O'},{field:2,axis:'O'},{field:5,axis:'L'}]});
 
 // both t and h
 // channelKeys.push({channelNumber:194969, name:'Kitchen',key:'6604VZUXX9AZT64M', fieldList:[{field:2,axis:'T'},{field:3,axis:'O'}]});
@@ -292,8 +291,7 @@ $(document).ready(function()
             tickInterval: 10,
             max: 115, min: 0
     },
-/*
-    ,{
+    {
             title: {
                 text: 'Light'
             },
@@ -301,7 +299,6 @@ $(document).ready(function()
             id: 'L',
             max: 1000, min: 0
     }, 
-*/
     {
             title: {
                 text: 'Other'
@@ -456,7 +453,7 @@ function loadChannelHistory(sentChannelIndex,channelNumber,key,sentFieldList,sen
     } 
 </style>
 
-    <title>16207 Temperatures</title>
+    <title>Warm Chicken</title>
   </head>
   <body style="background-color: white;">
 <!--
