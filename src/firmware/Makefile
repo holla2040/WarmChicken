@@ -20,7 +20,7 @@ F_CPU                   = 16000000
 ARDUINO_PORT            = /dev/$(DEVICE_FILE)
 TCP_PORT                = net:192.168.0.35:2000
                                             
-ARDUINO_LIBS            = Stepper
+ARDUINO_LIBS            = Stepper/src
                                             
 include ./Arduino.mk
 

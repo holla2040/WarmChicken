@@ -1,4 +1,4 @@
-#include "WProgram.h"
+#include "Arduino.h"
 #include <stdint.h>
 #include <util/crc16.h>
 #include <avr/eeprom.h>

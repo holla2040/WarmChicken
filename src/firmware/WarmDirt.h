@@ -1,7 +1,7 @@
 #ifndef WARMDIRT_H
 #define WARMDIRT_H 1
 
-#include "WProgram.h"
+#include "Arduino.h"
 #include <stdint.h>
 
 #define PINHEATEDDIRT       A0

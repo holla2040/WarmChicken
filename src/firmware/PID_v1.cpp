@@ -5,11 +5,7 @@
  * This Library is licensed under a GPLv3 License
  **********************************************************************************************/
 
-#if ARDUINO >= 100
-  #include "Arduino.h"
-#else
-  #include "WProgram.h"
-#endif
+#include "Arduino.h"
 
 #include "PID_v1.h"
 
