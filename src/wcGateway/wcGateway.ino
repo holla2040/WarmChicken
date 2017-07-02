@@ -54,7 +54,7 @@ unsigned int  doorMotorRuntime;     // 0
 
 #define HTMLLEN 1000
 void handleRoot() {
-  String postStr = "<head><meta http-equiv='refresh' content='2'/><title>";
+  String postStr = "<head><meta http-equiv='refresh' content='15'/><title>";
   postStr += String(LOCATION);  
   postStr += "Data</title><style>body { }</style></head><body><pre>";
   postStr += "location:             ";
