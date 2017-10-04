@@ -3,6 +3,8 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoJson.h>
+#include <ESP8266HTTPUpdateServer.h> // curl -F "image=@/tmp/arduino_build_435447/ESP8266Template.ino.bin" myLoc.local/firmware
+#include <WiFiManager.h>        //https://github.com/tzapu/WiFiManager
 
 #include "/home/holla/r/p/projects/WarmChicken/src/wcGateway/auth"
 
@@ -18,6 +20,10 @@
 boolean debug = 0;
 
 ESP8266WebServer httpd(80);
+ESP8266HTTPUpdateServer httpUpdater;
+const char *update_path = "/firmware";
+WiFiManager wifiManager;
+// curl -F "image=@/tmp/arduino_build_651930/wcGateway.ino.bin" http://192.168.0.10/firmware
 
 WiFiServer telnetd(23); // for command line and avrdude dfu
 
@@ -55,7 +61,7 @@ unsigned int  doorMotorRuntime;     // 0
 #define HTMLLEN 1000
 void handleRoot() {
   String postStr = "<head><meta http-equiv='refresh' content='15'/><title>";
-  postStr += String(LOCATION);  
+  postStr += String(LOCATION);
   postStr += "Data</title><style>body { }</style></head><body><pre>";
   postStr += "location:             ";
   postStr += String(LOCATION);
@@ -70,7 +76,7 @@ void handleRoot() {
   postStr += String(doorState);
   postStr += "<br>doorStatef:           ";
   postStr += String(doorStatef);
-  
+
   postStr += "<br>heaterPower:          ";
   postStr += String(heaterPower);
   postStr += "<br>lightLevelExterior    ";
@@ -85,7 +91,7 @@ void handleRoot() {
   postStr += String(switchJog);
   postStr += "<br>switchLight:          ";
   postStr += String(switchLight);
-  
+
   postStr += "<br>switchLimitUpper:     ";
   postStr += String(switchLimitUpper);
   postStr += "<br>switchRunStop:        ";
@@ -100,67 +106,8 @@ void handleRoot() {
   postStr += String(temperatureExterior);
   postStr += "<br>temperatureInterior:  ";
   postStr += String(temperatureInterior);
-  
+
   httpd.send ( 200, "text/html", postStr);
-}
-
-void handleRootold() {
-  char temp[HTMLLEN];
-  snprintf(temp, HTMLLEN, "<html>\
-  <head>\
-    <meta http-equiv='refresh' content='2'/>\
-    <title>%s Data</title>\
-    <style>\
-      body { }\
-    </style>\
-  </head>\
-  <body>\
-    <pre>\
-location:             %s<br><hr>\
-batteryVoltage:       %f<br>\
-doorMotorRuntime:     %d<br>\
-doorMotorSpeed:       %d<br>\
-doorState:            %s<br>\
-doorStatef:           %f<br>\
-heaterPower:          %d<br>\
-lightLevelExterior:   %u<br>\
-lightLevelInterior:   %u<br>\
-switchDoorClosed:     %d<br>\
-switchDoorOpen:       %d<br>\
-switchJog:            %s<br>\
-switchLight:          %d<br>\
-switchLimitUpper:     %d<br>\
-switchRunStop:        %s<br>\
-systemCorrelationId:  %lu<br>\
-systemMode:           %s<br>\
-systemUptime:         %lu<br>\
-temperatureExterior:  %f<br>\
-temperatureInterior:  %f<br>\
-   </pre>\
-  </body>\
-</html>", LOCATION, LOCATION,
-           batteryVoltage,
-           doorMotorRuntime,
-           doorMotorSpeed,
-           doorState,
-           doorStatef,
-           heaterPower,
-           lightLevelExterior,
-           lightLevelInterior,
-           switchDoorClosed,
-           switchDoorOpen,
-           switchJog,
-           switchLight,
-           switchLimitUpper,
-           switchRunStop,
-           systemCorrelationId,
-           systemMode,
-           systemUptime,
-           temperatureExterior,
-           temperatureInterior
-          );
-
-  httpd.send ( 200, "text/html", temp );
 }
 
 void handleNotFound() {
@@ -187,22 +134,28 @@ void setup(void) {
     Serial.println("\n\nwcGateway begin");
   }
 
-  WiFi.begin(ssid, password );
+  //  wifiManager.resetSettings();
+  wifiManager.autoConnect(LOCATION);
+
+  /*
+
+    WiFi.begin(ssid, password );
 
 
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
+    // Wait for connection
+    while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     if (debug) Serial.print(".");
-  }
+    }
 
-  if (debug) {
+    if (debug) {
     Serial.println("");
     Serial.print("Connected to " );
     Serial.println(ssid );
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP() );
-  }
+    }
+  */
 
   if (MDNS.begin(LOCATION) ) {
     if (debug) Serial.println("MDNS responder started");
@@ -215,6 +168,8 @@ void setup(void) {
     httpd.send (200, "text/plain", "this works as well");
   } );
   httpd.onNotFound (handleNotFound);
+
+  httpUpdater.setup(&httpd, update_path);
   httpd.begin();
   timeoutPost = 0;
   jsonValid = 0;
@@ -272,15 +227,6 @@ void jsonProcess() {
   systemUptime = root["systemUptime"];
   batteryVoltage = root["batteryVoltage"];
 
-  if (strstr(root["doorState"], "open")) {
-    doorStatef = 1;
-  }
-  if (strstr(root["doorState"], "closed")) {
-    doorStatef = 0;
-  }
-  if (strstr(root["doorState"], "stopped")) {
-    doorStatef = 0.5;
-  }
 
   heaterPower = root["heaterPower"];
   lightLevelExterior = root["lightLevelExterior"];
@@ -293,6 +239,16 @@ void jsonProcess() {
   switchDoorOpen = root["switchDoorOpen"];
   switchDoorClosed = root["switchDoorClosed"];
   doorMotorRuntime = root["doorMotorRuntime"];
+
+  if (switchDoorOpen == 1) {
+    doorStatef = 1;
+  } else {
+    if (switchDoorClosed == 1) {
+      doorStatef = 0;
+    } else {
+      doorStatef = 0.5;
+    }
+  }
 
   strcpy(systemMode, root["systemMode"]);
   strcpy(doorState, root["doorState"]);
