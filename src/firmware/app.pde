@@ -10,6 +10,7 @@ echo 'R' | nc 192.168.0.35 2000; /home/holla/arduino-1.6.5/hardware/tools/avr/bi
 /home/holla/arduino-1.6.5/hardware/tools/avr/bin/avrdude -C/home/holla/arduino-1.6.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino -P/dev/ttyUSB0 -b57600 -D -U flash:w:build-cli/arduino.hex:i
 
 echo 'R' | nc 192.168.0.35 2000;avrdude -q -V -p atmega328p -c stk500v1 -P net:192.168.0.35:2000 -U flash:w:build-cli/arduino.hex:i
+echo 'R' | nc 192.168.0.10 23;avrdude -q -V -p atmega328p -c stk500v1 -P net:192.168.0.10:23 -U flash:w:build-cli/arduino.hex:i
 */
 
 #include "Time.h"
@@ -680,7 +681,7 @@ void loopDoor() {
     }
 
     if (mode == MODE_AUTO) {
-      if ((lightLevel > LIGHTLEVELDAY) && (doorState == DOOR_STATE_CLOSED)) {
+      if ((lightLevel > LIGHTLEVELDAY) && (doorState != DOOR_STATE_OPEN)) {
         doorOpen();
       } else {
           if ((lightLevel < LIGHTLEVELNIGHT) && (doorState != DOOR_STATE_CLOSED)) {

@@ -3,7 +3,7 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoJson.h>
-#include <ESP8266HTTPUpdateServer.h> // curl -F "image=@/tmp/arduino_build_435447/ESP8266Template.ino.bin" myLoc.local/firmware
+#include <ESP8266HTTPUpdateServer.h>
 #include <WiFiManager.h>        //https://github.com/tzapu/WiFiManager
 
 #include "/home/holla/r/p/projects/WarmChicken/src/wcGateway/auth"
@@ -27,6 +27,7 @@ WiFiManager wifiManager;
 
 WiFiServer telnetd(23); // for command line and avrdude dfu
 
+#define rebootWarmChicken() Serial.println("R")
 #define JSONSIZE 1000
 char json[JSONSIZE];
 int jsonValid;
@@ -60,9 +61,10 @@ unsigned int  doorMotorRuntime;     // 0
 
 #define HTMLLEN 1000
 void handleRoot() {
-  String postStr = "<head><meta http-equiv='refresh' content='15'/><title>";
+  String postStr = "<head><meta http-equiv='refresh' content='10'/><title>";
   postStr += String(LOCATION);
-  postStr += "Data</title><style>body { }</style></head><body><pre>";
+  postStr += "Data</title><style>a {font:bold 11px Arial;text-decoration:none;background-color:#EEEEEE;color:#333333;padding:2px 6px 2px 6px;border-top:1px solid #CCCCCC;border-right:1px solid #333333;border-bottom:1px solid #333333;border-left:1px solid #CCCCCC;}</style>";
+  postStr += "</head><body><pre>";
   postStr += "location:             ";
   postStr += String(LOCATION);
   postStr += "<hr>batteryVoltage:       ";
@@ -106,7 +108,7 @@ void handleRoot() {
   postStr += String(temperatureExterior);
   postStr += "<br>temperatureInterior:  ";
   postStr += String(temperatureInterior);
-
+  postStr += "</pre><hr><a href='/o'>Open</a>&nbsp;&nbsp;<a href='/c'>Close</a>&nbsp;&nbsp;<a href='/a'>Auto</a>&nbsp;&nbsp;<a href='/m'>Manual</a>&nbsp;&nbsp;<a href='/r'>Reset</a></body></html>";
   httpd.send ( 200, "text/html", postStr);
 }
 
@@ -167,6 +169,31 @@ void setup(void) {
   httpd.on ("/inline", []() {
     httpd.send (200, "text/plain", "this works as well");
   } );
+  httpd.on ("/r", []() {
+    rebootWarmChicken();
+    handleRoot();
+  } );
+  httpd.on ("/o", []() {
+    Serial.println("M");
+    delay(100);
+    Serial.println("O");
+    handleRoot();
+  } );
+  httpd.on ("/c", []() {
+    Serial.println("M");
+    delay(100);
+    Serial.println("C");
+    handleRoot();
+  } );
+  httpd.on ("/a", []() {
+    Serial.println("A");
+    handleRoot();
+  } );
+  httpd.on ("/m", []() {
+    Serial.println("M");
+    handleRoot();
+  } );
+
   httpd.onNotFound (handleNotFound);
 
   httpUpdater.setup(&httpd, update_path);
@@ -177,6 +204,10 @@ void setup(void) {
 
   telnetd.begin();
   //  telnetd.setNoDelay(true);
+
+
+  delay(1000);
+  rebootWarmChicken();
 }
 
 void post() {
