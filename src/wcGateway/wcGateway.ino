@@ -61,7 +61,7 @@ unsigned int  doorMotorRuntime;     // 0
 
 #define HTMLLEN 1000
 void handleRoot() {
-  String postStr = "<head><meta http-equiv='refresh' content='10'/><title>";
+  String postStr = "<head><meta http-equiv='refresh' content='5'/><title>";
   postStr += String(LOCATION);
   postStr += "Data</title><style>a {font:bold 11px Arial;text-decoration:none;background-color:#EEEEEE;color:#333333;padding:2px 6px 2px 6px;border-top:1px solid #CCCCCC;border-right:1px solid #333333;border-bottom:1px solid #333333;border-left:1px solid #CCCCCC;}</style>";
   postStr += "</head><body><pre>";
@@ -108,7 +108,7 @@ void handleRoot() {
   postStr += String(temperatureExterior);
   postStr += "<br>temperatureInterior:  ";
   postStr += String(temperatureInterior);
-  postStr += "</pre><hr><a href='/o'>Open</a>&nbsp;&nbsp;<a href='/c'>Close</a>&nbsp;&nbsp;<a href='/a'>Auto</a>&nbsp;&nbsp;<a href='/m'>Manual</a>&nbsp;&nbsp;<a href='/r'>Reset</a></body></html>";
+  postStr += "</pre><hr><a href='/o'>Open</a>&nbsp;&nbsp;<a href='/c'>Close</a>&nbsp;&nbsp;<a href='/h'>Heat</a>&nbsp;&nbsp;<a href='/l'>Light</a>&nbsp;&nbsp;<a href='/a'>Auto</a>&nbsp;&nbsp;<a href='/m'>Manual</a>&nbsp;&nbsp;<a href='/r'>Reset</a></body></html>";
   httpd.send ( 200, "text/html", postStr);
 }
 
@@ -138,26 +138,6 @@ void setup(void) {
 
   //  wifiManager.resetSettings();
   wifiManager.autoConnect(LOCATION);
-
-  /*
-
-    WiFi.begin(ssid, password );
-
-
-    // Wait for connection
-    while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    if (debug) Serial.print(".");
-    }
-
-    if (debug) {
-    Serial.println("");
-    Serial.print("Connected to " );
-    Serial.println(ssid );
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP() );
-    }
-  */
 
   if (MDNS.begin(LOCATION) ) {
     if (debug) Serial.println("MDNS responder started");
@@ -191,6 +171,14 @@ void setup(void) {
   } );
   httpd.on ("/m", []() {
     Serial.println("M");
+    handleRoot();
+  } );
+  httpd.on ("/h", []() {
+    Serial.println("H");
+    handleRoot();
+  } );
+  httpd.on ("/l", []() {
+    Serial.println("L");
     handleRoot();
   } );
 

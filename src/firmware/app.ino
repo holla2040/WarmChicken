@@ -3,13 +3,12 @@
 #include "WarmDirt.h"
 
 /*
-/home/holla/arduino-1.6.5/hardware/tools/avr/bin/avrdude -C/home/holla/arduino-1.6.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.35:2000 -D -U flash:w:build-cli/arduino.hex:i
+/home/holla/arduino-1.6.5/hardware/tools/avr/bin/avrdude -C/home/holla/arduino-1.6.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.35:23 -D -U flash:w:build-cli/arduino.hex:i
 
-echo 'R' | nc 192.168.0.35 2000; /home/holla/arduino-1.6.5/hardware/tools/avr/bin/avrdude -C/home/holla/arduino-1.6.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.35:2000 -D -U flash:w:build-cli/arduino.hex:i
+echo 'R' | nc 192.168.0.35 23; /home/holla/arduino-1.6.5/hardware/tools/avr/bin/avrdude -C/home/holla/arduino-1.6.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.35:23 -D -U flash:w:build-cli/arduino.hex:i
 
 /home/holla/arduino-1.6.5/hardware/tools/avr/bin/avrdude -C/home/holla/arduino-1.6.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino -P/dev/ttyUSB0 -b57600 -D -U flash:w:build-cli/arduino.hex:i
 
-echo 'R' | nc 192.168.0.35 2000;avrdude -q -V -p atmega328p -c stk500v1 -P net:192.168.0.35:2000 -U flash:w:build-cli/arduino.hex:i
 echo 'R' | nc 192.168.0.10 23;avrdude -q -V -p atmega328p -c stk500v1 -P net:192.168.0.10:23 -U flash:w:build-cli/arduino.hex:i
 */
 
@@ -68,9 +67,6 @@ int sunlightstate;
 #define DOOR_CLOSE_SET              0.5
 uint8_t doorState;
 #define AVECOUNT                    10
-double  doorKp            = 200;
-double  doorKi            = 0.1;
-double  doorKd            = 0.0;
 double  doorMotorSpeed;
 
 uint32_t timeoutLightOff;
@@ -135,15 +131,10 @@ void doorSpeedSet(int speed) {
     }
     if (speed > 0) {
       doorState = DOOR_STATE_OPENING;
-    } else {
-      if (speed < 0) {
-        doorState = DOOR_STATE_CLOSING;
-      } else {
-        if (speed == 0) {
-          doorState = DOOR_STATE_STOPPED;
-        }
-      }
-    }
+    } 
+    if (speed < 0) {
+      doorState = DOOR_STATE_CLOSING;
+    } 
     speedB = wd.motorBSpeed(speed);
 }
 
@@ -245,12 +236,6 @@ void setup() {
     correlationID = 0;
     motorRuntime = 0;
 
-    if (doorPositionOpen()) {
-      doorState = DOOR_STATE_OPEN;
-    }
-    if (doorPositionClosed()) {
-      doorState = DOOR_STATE_CLOSED;
-    }
 }
 
 void lightOnRamp() {
@@ -272,6 +257,15 @@ void lightOff() {
     speedA = wd.motorASpeed(speedA);
 }
 
+void lightToggle() {
+  if (speedA) {
+    speedA = 0;
+  } else {
+    speedA = LIGHTONLEVEL;
+  }
+  speedA = wd.motorASpeed(speedA);
+} 
+
 void lightOffRamp() {
     int i;
     for (i = 100; i >= 0; i--) {
@@ -287,15 +281,12 @@ void commProcess(int c) {
         nextIdleStatusUpdate = 0;
         break;
     case 'L':
-        Serial.println("light on");
-        lightOn(LIGHTONLEVEL);
+        lightToggle();
         break;
     case 'f':
-        Serial.println("light off");
         lightOff();
         break;
     case 'R':
-        Serial.println("reset");
         delay(100);
         reset();
         break;
@@ -374,6 +365,9 @@ void commProcess(int c) {
     case 'C':
         Serial.println("door close");
         doorClose();
+        break;
+    case 'H':
+        wd.load0On();
         break;
     case 'A': // MODE_AUTO
         Serial.println("auto");
@@ -637,67 +631,49 @@ void loopOverride() {
 
 int lastUpLimit;
 void loopDoor() {
-    int lightLevel = wd.getLightSensor();
-    int limit = getUpLimit();
+  int lightLevel = wd.getLightSensor();
 
-    if ((lastUpLimit == 0) && limit) {
-      doorState = DOOR_STATE_LIMIT;
-      if (speedB > 0) {
-        doorSpeedSet(-100);
-      } else {
-        if (speedB < 0) {
-          doorSpeedSet(100);
-        }
+  // this happen regardless of mode, you hit the limit it run towards until upper limit
+  if (getUpLimit()) {
+    if (speedB > 0) {
+      doorSpeedSet(-100);
+    } else {
+      if (speedB < 0) {
+        doorSpeedSet(100);
       }
-      delay(1000); 
+    }
+    while (getUpLimit()) {}; // run until we get to door open switch
+    fullStop();
+  }
+
+  if (mode == MODE_AUTO) {
+    if (doorPositionOpen()) {
       fullStop();
+      doorState = DOOR_STATE_OPEN;
+    } 
+    if (doorPositionClosed()) {
+      fullStop();
+      doorState = DOOR_STATE_CLOSED;
     }
-    lastUpLimit = getUpLimit();
 
-    switch (doorState) {
-      case DOOR_STATE_OPEN:
-        break;
-      case DOOR_STATE_CLOSED:
-        break;
-      case DOOR_STATE_OPENING:
-        if (doorPositionOpen()) {
-          fullStop();
-          doorState = DOOR_STATE_OPEN;
+    if ((lightLevel > LIGHTLEVELDAY) && (doorState != DOOR_STATE_OPEN)) {
+      doorOpen();
+    } else {
+        if ((lightLevel < LIGHTLEVELNIGHT) && (doorState != DOOR_STATE_CLOSED)) {
+          doorClose();
         }
-        break;
-      case DOOR_STATE_CLOSING:
-        if (doorPositionClosed()) {
-          delay(3000);
-          fullStop();
-          doorState = DOOR_STATE_CLOSED;
-        }
-        break;
-      case DOOR_STATE_STOPPED:
-        break;
-      case DOOR_STATE_LIMIT:
-        break;
-      case DOOR_STATE_MANUAL:
-        break;
     }
-
-    if (mode == MODE_AUTO) {
-      if ((lightLevel > LIGHTLEVELDAY) && (doorState != DOOR_STATE_OPEN)) {
-        doorOpen();
-      } else {
-          if ((lightLevel < LIGHTLEVELNIGHT) && (doorState != DOOR_STATE_CLOSED)) {
-            doorClose();
-          }
-      }
-    }
-
+  }
 }
 
 void loopHeater() {
-    if ((temperatureInterior < HEATERTHRESHOLD) && (doorState == DOOR_STATE_CLOSED)) {
-      wd.load0On();
-    } else {
-      wd.load0Off();
-    }
+    if (mode == MODE_AUTO) {
+      if ((temperatureInterior < HEATERTHRESHOLD) && (doorState == DOOR_STATE_CLOSED))  {
+        wd.load0On();
+      } else {
+        wd.load0Off();
+      }
+  }
 }
 
 void loopMode() {

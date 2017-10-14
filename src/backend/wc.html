@@ -22,7 +22,7 @@ var channelsLoaded = 0;
 // fieldList shows which field you want to load, and which axis to display that field on, 
 // the 'T' Temperature left axis, or the 'O' Other right axis.
 var channelKeys =[];
-channelKeys.push({channelNumber:197763, name:'WarmChicken',key:'70NZP8T4WMIUB92W', fieldList:[{field:6,axis:'T'},{field:7,axis:'T'},{field:3,axis:'O'},{field:4,axis:'O'},{field:2,axis:'O'},{field:5,axis:'L'}]});
+channelKeys.push({channelNumber:197763, name:'WarmChicken',key:'70NZP8T4WMIUB92W', fieldList:[{field:5,axis:'L'},{field:6,axis:'T'},{field:7,axis:'T'},{field:3,axis:'O'},{field:4,axis:'O'},{field:2,axis:'O'}]});
 
 // both t and h
 // channelKeys.push({channelNumber:194969, name:'Kitchen',key:'6604VZUXX9AZT64M', fieldList:[{field:2,axis:'T'},{field:3,axis:'O'}]});
@@ -456,10 +456,12 @@ function loadChannelHistory(sentChannelIndex,channelNumber,key,sentFieldList,sen
     <title>Warm Chicken</title>
   </head>
   <body style="background-color: white;">
+<a href="http://192.168.0.10" target='_blank'>Warm Chicken</a><br>
 <!--
 <table>
 <tr><th>&nbsp;</th><th>Temperature</th><th>Humidity</th></tr>
-<tr><td><a href="http://192.168.0.9" target='_blank'>Greenhouse</a></td><td><span id='Greenhousetemperature'></span>&deg;F</td><td><span id='Greenhousehumidity'></span>%</td></tr>
+<tr><td>
+<a href="http://192.168.0.9" target='_blank'>Greenhouse</a></td><td><span id='Greenhousetemperature'></span>&deg;F</td><td><span id='Greenhousehumidity'></span>%</td></tr>
 <tr><td><a href="http://192.168.0.137" target="_blank">Morning Porch</a><td><span id='MorningPorchtemperature'></span>&deg;F</td><td><span id='MorningPorchhumidity'></span>%</td></tr>
 <tr><td><a href="http://192.168.0.161" target="_blank">Kitchen</a><td><span id='Kitchentemperature'></span>&deg;F</td><td><span id='Kitchenhumidity'></span>%</td></tr>
 </table>

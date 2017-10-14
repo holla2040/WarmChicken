@@ -18,7 +18,7 @@ AVRDUDE_CONF 			= ~/r/a/arduino/conf/avrdude.conf
                                             
 F_CPU                   = 16000000
 ARDUINO_PORT            = /dev/$(DEVICE_FILE)
-TCP_PORT                = net:192.168.0.35:2000
+TCP_PORT                = net:192.168.0.10:23
                                             
 ARDUINO_LIBS            = Stepper/src
                                             
@@ -36,7 +36,7 @@ runserial: all
 	make con
 
 run: all
-	echo -n 'R0 ' | nc 192.168.0.35 2000
+	echo -n 'R0 ' | nc 192.168.0.10 23
 	make tcp_upload
 
 con:
@@ -44,12 +44,11 @@ con:
 	microcom -p $(ARDUINO_PORT) -s $(CONSOLE_BAUDRATE)
 
 push: all
-	/usr/bin/avrdude -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.35:2000 -D -U flash:w:build-cli/arduino.hex:i
-	telnet 192.168.0.35 2000
+	/usr/bin/avrdude -V -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.10:23 -D -U flash:w:build-cli/arduino.hex:i
 
 usb: all
-	/usr/bin/avrdude -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P /dev/ttyUSB0 -b57600 -D -U flash:w:build-cli/arduino.hex:i
+	/usr/bin/avrdude -V -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P /dev/ttyUSB0 -b57600 -D -U flash:w:build-cli/arduino.hex:i
 
 pusha: all
-	/home/holla/arduino/hardware/tools/avr/bin/avrdude -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.35:2000 -D -U flash:w:build-cli/arduino.hex:i
+	/home/holla/arduino/hardware/tools/avr/bin/avrdude -V -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.10:23 -D -U flash:w:build-cli/arduino.hex:i
 
