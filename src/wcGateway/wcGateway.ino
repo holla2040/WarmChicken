@@ -67,6 +67,8 @@ void handleRoot() {
   postStr += "</head><body><pre>";
   postStr += "location:             ";
   postStr += String(LOCATION);
+  postStr += "<br>gatewayUptime:        ";
+  postStr += String(int(millis() / 1000));
   postStr += "<hr>batteryVoltage:       ";
   postStr += String(batteryVoltage);
 
@@ -78,7 +80,6 @@ void handleRoot() {
   postStr += String(doorState);
   postStr += "<br>doorStatef:           ";
   postStr += String(doorStatef);
-
   postStr += "<br>heaterPower:          ";
   postStr += String(heaterPower);
   postStr += "<br>lightLevelExterior    ";
@@ -153,31 +154,31 @@ void setup(void) {
     rebootWarmChicken();
     handleRoot();
   } );
-  httpd.on ("/o", []() {
+  httpd.on ("/o", []() { // open
     Serial.println("M");
     delay(100);
     Serial.println("O");
     handleRoot();
   } );
-  httpd.on ("/c", []() {
+  httpd.on ("/c", []() { // close
     Serial.println("M");
     delay(100);
     Serial.println("C");
     handleRoot();
   } );
-  httpd.on ("/a", []() {
+  httpd.on ("/a", []() { // auto
     Serial.println("A");
     handleRoot();
   } );
-  httpd.on ("/m", []() {
+  httpd.on ("/m", []() { // manual
     Serial.println("M");
     handleRoot();
   } );
-  httpd.on ("/h", []() {
+  httpd.on ("/h", []() { // heat on
     Serial.println("H");
     handleRoot();
   } );
-  httpd.on ("/l", []() {
+  httpd.on ("/l", []() { // light on
     Serial.println("L");
     handleRoot();
   } );
@@ -193,7 +194,8 @@ void setup(void) {
   telnetd.begin();
   //  telnetd.setNoDelay(true);
 
-
+  // we're reseting warmchicken board because esp8266 boot
+  // process spews a bunch of crap, don't know where it is
   delay(1000);
   rebootWarmChicken();
 }
@@ -329,6 +331,8 @@ void loop(void) {
   loopSerial();
   loopPost();
   loopTelnetd();
+  ESP.wdtFeed(); 
+  yield();
 }
 
 void varInit(void) {
