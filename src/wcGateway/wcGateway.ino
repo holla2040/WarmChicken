@@ -109,7 +109,7 @@ void handleRoot() {
   postStr += String(temperatureExterior);
   postStr += "<br>temperatureInterior:  ";
   postStr += String(temperatureInterior);
-  postStr += "</pre><hr><a href='/o'>Open</a>&nbsp;&nbsp;<a href='/c'>Close</a>&nbsp;&nbsp;<a href='/h'>Heat</a>&nbsp;&nbsp;<a href='/l'>Light</a>&nbsp;&nbsp;<a href='/a'>Auto</a>&nbsp;&nbsp;<a href='/m'>Manual</a>&nbsp;&nbsp;<a href='/r'>Reset</a></body></html>";
+  postStr += "</pre><hr><a href='/o'>Open</a>&nbsp;&nbsp;<a href='/c'>Close</a>&nbsp;&nbsp;<a href='/h'>Heat</a>&nbsp;&nbsp;<a href='/t'>Light</a>&nbsp;&nbsp;<a href='/a'>Auto</a>&nbsp;&nbsp;<a href='/m'>Manual</a>&nbsp;&nbsp;<a href='/r'>Reset</a></body></html>";
   httpd.send ( 200, "text/html", postStr);
 }
 
@@ -182,6 +182,15 @@ void setup(void) {
     Serial.println("L");
     handleRoot();
   } );
+  httpd.on ("/f", []() { // light off
+    Serial.println("F");
+    handleRoot();
+  } );
+  httpd.on ("/t", []() { // light toggle
+    Serial.println("t");
+    handleRoot();
+  } );
+
 
   httpd.onNotFound (handleNotFound);
 

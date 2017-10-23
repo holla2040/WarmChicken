@@ -281,10 +281,13 @@ void commProcess(int c) {
         nextIdleStatusUpdate = 0;
         break;
     case 'L':
-        lightToggle();
+        lightOn(50);
         break;
-    case 'f':
+    case 'F':
         lightOff();
+        break;
+    case 't':
+        lightToggle();
         break;
     case 'R':
         delay(100);
