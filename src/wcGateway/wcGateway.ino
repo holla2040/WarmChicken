@@ -226,6 +226,8 @@ void post() {
     postStr += String(temperatureInterior);
     postStr += "&field7=";
     postStr += String(temperatureExterior);
+    postStr += "&field8=";
+    postStr += String(lightLevelInterior);
     //    postStr += "&field8=";
     //    postStr += String(other);
     if (debug) Serial.println(postStr);

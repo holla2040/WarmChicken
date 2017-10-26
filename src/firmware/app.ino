@@ -31,8 +31,6 @@ WarmDirt wd;
 #define pinDoorOpen   2
 #define pinDoorClosed 3
 
-#define VPLUSR1     59000
-#define VPLUSR2     179000
 #define VPLUSSCALE  0.019697    // (((5.0/1024.0)/VPLUSR2)*(VPLUSR1+VPLUSR2))
 
 #define STATUSUPDATEINVTERVAL   1000
@@ -40,14 +38,13 @@ WarmDirt wd;
 #define RADIOREBOOTINVTERVAL    3600000L
 
 int sunlightstate;
-#define SUNLIGHTTHRESHOLD              500
 #define STATESUNLIGHTABOVETHRESHOLD    'L'
 #define STATESUNLIGHTBELOWTHRESHOLD    'D'
 
 #define MOTORRUNTIMEMAX 60
 
 #define LIGHTLEVELDAY                200
-#define LIGHTLEVELNIGHT              30
+#define LIGHTLEVELNIGHT              40
 
 #define HEATERTHRESHOLD             20
 #define BADSENSORTHRESHOLD          20
@@ -71,7 +68,6 @@ double  doorMotorSpeed;
 
 uint32_t timeoutLightOff;
 uint32_t correlationID;
-#define  LIGHTONTIME                10800000L   // 3*60*60*1000
 
 uint8_t  mode;
 #define  MODE_AUTO     'A'
@@ -79,8 +75,6 @@ uint8_t  mode;
 #define  MODE_OVERRIDE 'O'
 
 #define LIGHTONLEVEL 50
-
-uint32_t lightUpdate;
 
 float temperatureInterior;
 
@@ -93,7 +87,6 @@ int8_t speedB = 0;
 
 int motorRuntime;
 uint32_t motorStartTime;
-
 
 void printDigits(int digits) {
     // utility function for digital clock display: prints preceding colon and leading 0
@@ -241,20 +234,17 @@ void setup() {
 void lightOnRamp() {
     int i;
     for (i = 0; i < 101; i++) {
-        speedA = i;
-        speedA = wd.motorASpeed(speedA);
+        speedA = wd.motorASpeed(i);
         delay(100);
     }
 }
 
 void lightOn(int v) {
-    speedA = v;
-    speedA = wd.motorASpeed(speedA);
+    speedA = wd.motorASpeed(v);
 }
 
 void lightOff() {
-    speedA = 0;
-    speedA = wd.motorASpeed(speedA);
+    speedA = wd.motorASpeed(0);
 }
 
 void lightToggle() {
@@ -269,8 +259,7 @@ void lightToggle() {
 void lightOffRamp() {
     int i;
     for (i = 100; i >= 0; i--) {
-        speedA = i;
-        speedA = wd.motorASpeed(speedA);
+        speedA = wd.motorASpeed(i);
         delay(100);
     }
 }
@@ -335,22 +324,8 @@ void commProcess(int c) {
         Serial.print("b = ");
         Serial.println(speedB);
         break;
-    case 'j':
-        speedA += MOTORSPEEDINC;
-        speedA = wd.motorASpeed(speedA);
-        Serial.print("a = ");
-        Serial.println(speedA);
-        break;
-    case 'l':
-        speedA -= MOTORSPEEDINC;
-        speedA = wd.motorASpeed(speedA);
-        Serial.print("a = ");
-        Serial.println(speedA);
-        break;
     case ' ':
-        Serial.println("full stop");
-        speedA = 0;
-        wd.motorASpeed(speedA);
+        speedA = wd.motorASpeed(0);
         fullStop();
         wd.stepperDisable();
         break;
@@ -603,11 +578,15 @@ void loopStatus() {
     }
 }
 
+int lastLightSwitch;
 void loopLight() {
-    if (lightSwitch()) {
+    int l;
+    l = lightSwitch();
+    if (l) {
       lightOn(100);
     } else {
-      if (speedA != LIGHTONLEVEL) {
+      // light switch isn't on but last time was it on?
+      if (l != lastLightSwitch){ 
         lightOff();
       }
     }
@@ -615,6 +594,8 @@ void loopLight() {
     if (doorState == DOOR_STATE_OPENING) {
         lightOff();
     }
+
+    lastLightSwitch = l;
 }
 
 void loopOverride() {
