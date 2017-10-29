@@ -61,7 +61,7 @@ unsigned int  doorMotorRuntime;     // 0
 
 #define HTMLLEN 1000
 void handleRoot() {
-  String postStr = "<head><meta http-equiv='refresh' content='5'/><title>";
+  String postStr = "<head><meta http-equiv='refresh' content='5;url=http://192.168.0.10'/><title>";
   postStr += String(LOCATION);
   postStr += "Data</title><style>a {font:bold 11px Arial;text-decoration:none;background-color:#EEEEEE;color:#333333;padding:2px 6px 2px 6px;border-top:1px solid #CCCCCC;border-right:1px solid #333333;border-bottom:1px solid #333333;border-left:1px solid #CCCCCC;}</style>";
   postStr += "</head><body><pre>";
@@ -242,7 +242,22 @@ void post() {
     tsClient.print("\n\n");
     tsClient.print(postStr);
   }
-  if (debug) Serial.println("post");
+
+  if (tsClient.connect(tsAPIHost, 80)) {
+    String postStr = "PO2TBFL6DZWAIJFF";
+    postStr += "&field1=";
+    postStr += String(int(millis()/1000));
+
+    tsClient.print("POST /update HTTP/1.1\n");
+    tsClient.print("Host: api.thingspeak.com\n");
+    tsClient.print("Connection: close\n");
+    tsClient.print("X-THINGSPEAKAPIKEY: PO2TBFL6DZWAIJFF\n");
+    tsClient.print("Content-Type: application/x-www-form-urlencoded\n");
+    tsClient.print("Content-Length: ");
+    tsClient.print(postStr.length());
+    tsClient.print("\n\n");
+    tsClient.print(postStr);
+  }
 }
 
 char c;

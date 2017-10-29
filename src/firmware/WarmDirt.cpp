@@ -19,7 +19,7 @@ Stepper stepper(15,PINMOTORAIN,PINMOTORBIN);
 double pidsetpoint, pidinput, pidoutput; 
 PID pid(&pidinput, &pidoutput, &pidsetpoint,3000,1,1,DIRECT);
 
-int windowSize = 5000;
+unsigned int windowSize = 5000;
 unsigned long windowStartTime;
 
 /* see http://stackoverflow.com/questions/4709127/c-gcc-cant-find-static-member-when-linking */
@@ -378,7 +378,7 @@ void WarmDirt::temperatureLoop() {
             }
         }
 
-        if(millis() - windowStartTime>windowSize) { //time to shift the Relay Window
+        if(millis() - windowStartTime > windowSize) { //time to shift the Relay Window
             windowStartTime += windowSize;
         }
 

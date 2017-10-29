@@ -204,9 +204,16 @@ float microsecondsToCentimeters(long microseconds) {
     //return microseconds / 29 / 2;
 }
 
+void handleReset() {
+    delay(200);
+    if (Serial.available() == 4)
+      if (Serial.read() == 'e')
+        if (Serial.read() == 's')
+          if (Serial.read() == 'e')
+            if (Serial.read() == 't') reset();
+}
 
 void setup() {
-    float d;
     Serial.begin(57600);
     Serial.println("WarmChicken begin");
 
@@ -277,6 +284,9 @@ void commProcess(int c) {
         break;
     case 't':
         lightToggle();
+        break;
+    case 'Z':
+        handleReset();
         break;
     case 'R':
         delay(100);
@@ -559,8 +569,6 @@ void printStatusJSON() {
 }
 
 void loopStatus() {
-    int i;
-    char buffer[30];
     uint32_t now = millis();
 
     if (now > nextActivityUpdate) {
@@ -591,7 +599,7 @@ void loopLight() {
       }
     }
 
-    if (doorState == DOOR_STATE_OPENING) {
+    if (wd.getLightSensor() > LIGHTLEVELDAY) {
         lightOff();
     }
 
