@@ -1,0 +1,15 @@
+{ "name":"morningporch",
+    "label":"morningporch",
+    "heartbeatinterval":1000,
+    "dht":{
+        "enabled":1,
+        "type":22,
+        "pin":2,
+        "updateinterval":1000
+    },
+    "clouddata":{
+        "apikey":"VPLROW8XT27KWM0X",
+        "url":"api.thingspeak.com",
+        "postinterval":60000
+    }
+}

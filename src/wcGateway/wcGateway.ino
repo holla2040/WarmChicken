@@ -1,29 +1,26 @@
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
-#include <ArduinoJson.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include <WebSocketsServer.h>
 #include <WiFiManager.h>        //https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>
+#include <WiFiClient.h>
 
 #include "/home/holla/r/p/projects/WarmChicken/src/wcGateway/auth"
 
-/* 'auth' file has these lines
-  const char *ssid      = "????";
-  const char *password  = "????";
-
-  #define LOCATION      "????"
+/* 'auth' file has these lines, need to replace this
   String apiKey         = "????";
 */
 
-
 boolean debug = 0;
 
-ESP8266WebServer httpd(80);
+ESP8266WebServer httpServer(80);
+WebSocketsServer webSocketServer = WebSocketsServer(81);
 ESP8266HTTPUpdateServer httpUpdater;
 const char *update_path = "/firmware";
 WiFiManager wifiManager;
-// curl -F "image=@/tmp/arduino_build_651930/wcGateway.ino.bin" http://192.168.0.10/firmware
+#include "fs.h"
 
 WiFiServer telnetd(23); // for command line and avrdude dfu
 
@@ -48,154 +45,118 @@ unsigned int  lightLevelInterior;   // 0,
 float         batteryVoltage;       // 12.57,
 char          systemMode[10];       // "auto",
 int           doorMotorSpeed;       // 0,
-char          doorState[10];            // "open",
+char          doorState[10];        // "open",
 float         doorStatef;
 int           heaterPower;          // 0,
 int           switchLight;          // 0,
-char          switchRunStop[14];        // "auto",
-char          switchJog[10];            // "off",
+char          switchRunStop[14];    // "auto",
+char          switchJog[10];        // "off",
 unsigned int  switchLimitUpper;     // 0,
 unsigned int  switchDoorOpen;       // 1,
 unsigned int  switchDoorClosed;     // 0,
 unsigned int  doorMotorRuntime;     // 0
 
-#define HTMLLEN 1000
-void handleRoot() {
-  String postStr = "<head><meta http-equiv='refresh' content='5;url=http://192.168.0.10'/><title>";
-  postStr += String(LOCATION);
-  postStr += "Data</title><style>a {font:bold 11px Arial;text-decoration:none;background-color:#EEEEEE;color:#333333;padding:2px 6px 2px 6px;border-top:1px solid #CCCCCC;border-right:1px solid #333333;border-bottom:1px solid #333333;border-left:1px solid #CCCCCC;}</style>";
-  postStr += "</head><body><pre>";
-  postStr += "location:             ";
-  postStr += String(LOCATION);
-  postStr += "<br>gatewayUptime:        ";
-  postStr += String(int(millis() / 1000));
-  postStr += "<hr>batteryVoltage:       ";
-  postStr += String(batteryVoltage);
-
-  postStr += "<br>doorMotorRuntime:     ";
-  postStr += String(doorMotorRuntime);
-  postStr += "<br>doorMotorSpeed:       ";
-  postStr += String(doorMotorSpeed);
-  postStr += "<br>doorState:            ";
-  postStr += String(doorState);
-  postStr += "<br>doorStatef:           ";
-  postStr += String(doorStatef);
-  postStr += "<br>heaterPower:          ";
-  postStr += String(heaterPower);
-  postStr += "<br>lightLevelExterior    ";
-  postStr += String(lightLevelExterior);
-  postStr += "<br>lightLevelInterior:   ";
-  postStr += String(lightLevelInterior);
-  postStr += "<br>switchDoorClosed:     ";
-  postStr += String(switchDoorClosed);
-  postStr += "<br>switchDoorOpen:       ";
-  postStr += String(switchDoorOpen);
-  postStr += "<br>switchJog:            ";
-  postStr += String(switchJog);
-  postStr += "<br>switchLight:          ";
-  postStr += String(switchLight);
-
-  postStr += "<br>switchLimitUpper:     ";
-  postStr += String(switchLimitUpper);
-  postStr += "<br>switchRunStop:        ";
-  postStr += String(switchRunStop);
-  postStr += "<br>systemCorrelationId:  ";
-  postStr += String(systemCorrelationId);
-  postStr += "<br>systemMode:           ";
-  postStr += String(systemMode);
-  postStr += "<br>systemUptime:         ";
-  postStr += String(systemUptime);
-  postStr += "<br>temperatureExterior:  ";
-  postStr += String(temperatureExterior);
-  postStr += "<br>temperatureInterior:  ";
-  postStr += String(temperatureInterior);
-  postStr += "</pre><hr><a href='/o'>Open</a>&nbsp;&nbsp;<a href='/c'>Close</a>&nbsp;&nbsp;<a href='/h'>Heat</a>&nbsp;&nbsp;<a href='/t'>Light</a>&nbsp;&nbsp;<a href='/a'>Auto</a>&nbsp;&nbsp;<a href='/m'>Manual</a>&nbsp;&nbsp;<a href='/r'>Reset</a></body></html>";
-  httpd.send ( 200, "text/html", postStr);
-}
-
-void handleNotFound() {
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += httpd.uri();
-  message += "\nMethod: ";
-  message += ( httpd.method() == HTTP_GET ) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += httpd.args();
-  message += "\n";
-
-  for (uint8_t i = 0; i < httpd.args(); i++) {
-    message += " " + httpd.argName(i) + ": " + httpd.arg(i) + "\n";
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+  switch(type) {
+    case WStype_DISCONNECTED:
+      break;
+    case WStype_CONNECTED:
+      break;
+    case WStype_TEXT:
+      switch (payload[0]) {
+        case 'r':
+          rebootWarmChicken();
+          break;
+        case 'o':
+          Serial.print("M");
+          delay(100);
+          Serial.print("O");
+          break;
+        case 'c':
+          Serial.print("M");
+          delay(100);
+          Serial.print("C");
+          break;
+        case 'a':
+          Serial.print("A");
+          break;
+        case 'm':
+          Serial.print("M");
+          break;
+        case 'h':
+          Serial.print("H");
+          break;
+        case 'l':
+          Serial.print("L");
+          break;
+        case 'f':
+          Serial.print("F");
+          break;
+        case 't':
+          Serial.print("t");
+          break;
+      }
+      break;
+    case WStype_BIN:
+      // hexdump(payload, length);
+      // echo data back to browser
+      break;
+    default:
+      break;
   }
-
-  httpd.send(404, "text/plain", message);
 }
 
 void setup(void) {
   Serial.begin(57600);
   if (debug) {
-    Serial.println("");
     Serial.println("\n\nwcGateway begin");
   }
+
+  fsSetup();
 
   //  wifiManager.resetSettings();
   wifiManager.autoConnect(LOCATION);
 
-  if (MDNS.begin(LOCATION) ) {
+  if (MDNS.begin("warmchicken") ) {
     if (debug) Serial.println("MDNS responder started");
   }
 
   varInit();
 
-  httpd.on ("/", handleRoot);
-  httpd.on ("/inline", []() {
-    httpd.send (200, "text/plain", "this works as well");
-  } );
-  httpd.on ("/r", []() {
+  httpServer.on ("/r", []() {
     rebootWarmChicken();
-    handleRoot();
   } );
-  httpd.on ("/o", []() { // open
+  httpServer.on ("/o", []() { // open
     Serial.println("M");
     delay(100);
     Serial.println("O");
-    handleRoot();
   } );
-  httpd.on ("/c", []() { // close
+  httpServer.on ("/c", []() { // close
     Serial.println("M");
     delay(100);
     Serial.println("C");
-    handleRoot();
   } );
-  httpd.on ("/a", []() { // auto
+  httpServer.on ("/a", []() { // auto
     Serial.println("A");
-    handleRoot();
   } );
-  httpd.on ("/m", []() { // manual
+  httpServer.on ("/m", []() { // manual
     Serial.println("M");
-    handleRoot();
   } );
-  httpd.on ("/h", []() { // heat on
+  httpServer.on ("/h", []() { // heat on
     Serial.println("H");
-    handleRoot();
   } );
-  httpd.on ("/l", []() { // light on
+  httpServer.on ("/l", []() { // light on
     Serial.println("L");
-    handleRoot();
   } );
-  httpd.on ("/f", []() { // light off
+  httpServer.on ("/f", []() { // light off
     Serial.println("F");
-    handleRoot();
   } );
-  httpd.on ("/t", []() { // light toggle
+  httpServer.on ("/t", []() { // light toggle
     Serial.println("t");
-    handleRoot();
   } );
 
-
-  httpd.onNotFound (handleNotFound);
-
-  httpUpdater.setup(&httpd, update_path);
-  httpd.begin();
+  httpUpdater.setup(&httpServer, update_path);
+  httpServer.begin();
   timeoutPost = 0;
   jsonValid = 0;
   if (debug) Serial.println ("HTTP server started");
@@ -205,6 +166,9 @@ void setup(void) {
 
   // we're reseting warmchicken board because esp8266 boot
   // process spews a bunch of crap, don't know where it is
+  webSocketServer.begin();
+  webSocketServer.onEvent(webSocketEvent);
+
   delay(1000);
   rebootWarmChicken();
 }
@@ -262,19 +226,25 @@ void post() {
 
 char c;
 
+/* this is coming from the board */
 void jsonProcess() {
-  StaticJsonBuffer<400> jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(json);
+  char line[40];
 
-  if (!root.success()) {
+  webSocketServer.broadcastTXT(json,strlen(json));
+
+  JsonObject root;
+  StaticJsonDocument<512> doc;
+  DeserializationError error = deserializeJson(doc, json);
+
+  if (error) {
     return;
-  }
+  } 
+
+  root = doc.as<JsonObject>();
 
   systemCorrelationId = root["systemCorrelationId"];
   systemUptime = root["systemUptime"];
   batteryVoltage = root["batteryVoltage"];
-
-
   heaterPower = root["heaterPower"];
   lightLevelExterior = root["lightLevelExterior"];
   lightLevelInterior = root["lightLevelInterior"];
@@ -296,16 +266,14 @@ void jsonProcess() {
       doorStatef = 0.5;
     }
   }
+  sprintf(line,"{\"wcGatewayUptime\":%u}",millis()/1000);
+  webSocketServer.broadcastTXT(line,strlen(line));
 
   strcpy(systemMode, root["systemMode"]);
   strcpy(doorState, root["doorState"]);
   strcpy(switchRunStop, root["switchRunStop"]);
   strcpy(switchJog, root["switchJog"]);
 
-  if (debug) {
-    Serial.print("jsonProcess ");
-    Serial.println(root.success());
-  }
   jsonValid = 1;
 }
 
@@ -318,6 +286,7 @@ void loopSerial() {
     }
     json[jsonIndex] = c;
     if (c == '}') {
+      json[++jsonIndex] = 0;
       jsonProcess();
     }
     jsonIndex++;
@@ -353,10 +322,11 @@ void loopTelnetd() {
 }
 
 void loop(void) {
-  httpd.handleClient();
+  httpServer.handleClient();
   loopSerial();
   loopPost();
   loopTelnetd();
+  webSocketServer.loop();
   ESP.wdtFeed(); 
   yield();
 }
@@ -388,7 +358,6 @@ void varInit(void) {
 }
 
 /*
-
   what firmware sends
   {"systemCorrelationId":222,"systemUptime":271,"temperatureInterior":68.8,"temperatureExterior":88.6,"lightLevelExterior":977,"lightLevelInterior":0,"batteryVoltage":13.59,"systemMode":"auto","doorMotorSpeed":0,"doorState":"open","heaterPower":0,"switchLight":0,"switchRunStop":"auto","switchJog":"off","switchLimitUpper":0,"switchDoorOpen":1,"switchDoorClosed":0,"doorMotorRuntime":35}
 
@@ -414,5 +383,3 @@ void varInit(void) {
   }
 
 */
-
-

@@ -1,8 +1,10 @@
 #!/bin/bash
 
+WC=192.168.0.41
+
 case "$1" in
     open    ) 
-        dooropen=`curl --connect-timeout 5 -s http://192.168.0.10/ | sed "s/^.*switchDoorOpen: //g" | sed "s/<.*//g" | sed "s/^ *//g"`
+        dooropen=`curl --connect-timeout 5 -s http://$WC | sed "s/^.*switchDoorOpen: //g" | sed "s/<.*//g" | sed "s/^ *//g"`
         if [ -n "$dooropen" ]
         then
             if [ "$dooropen" -ne "1" ]
@@ -16,7 +18,7 @@ case "$1" in
         fi
         ;;
     closed  ) 
-        doorclosed=`curl -s http://192.168.0.10/ | sed "s/^.*switchDoorClosed: //g" | sed "s/<.*//g" | sed "s/^ *//g"`
+        doorclosed=`curl -s http://$WC | sed "s/^.*switchDoorClosed: //g" | sed "s/<.*//g" | sed "s/^ *//g"`
         if [ -n "$doorclosed" ]
         then
             if [ "$doorclosed" -ne "1" ]

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>Warm Chicken</title>
+  <LINK REL=stylesheet HREF="style.css" TYPE="text/css">
+  <script type="text/javascript">
+    var websock;
+
+    function webSocketLoad() {
+      websock = new WebSocket('ws://' + window.location.hostname + ':81/');
+      websock.onopen = function(evt) { console.log('websock open'); };
+      websock.onclose = function(evt) { console.log('websock close'); };
+      websock.onerror = function(evt) { console.log(evt); };
+      websock.onmessage = function(evt) {
+        // console.log(evt.data);
+        var data = JSON.parse(evt.data);
+        for (var key in data) {
+            // console.log(key+" "+data[key]);
+            var element = document.getElementById(key);
+            if (element) {
+              element.innerHTML = data[key];
+              if (key == 'name') {
+                window.document.title = data[key];
+              }
+            } else {
+                console.log("not found "+key);
+            }
+        }
+      };
+    };
+
+    function onBodyLoad(){
+      webSocketLoad();
+    }
+
+    function send(c) {
+        websock.send(c);
+    }
+  </script>
+</head>
+<body id="index" onload="onBodyLoad()">
+ <b>Warm Chicken</b>
+<hr>
+ <pre> systemMode:           <span id="systemMode">???</span>
+ systemUptime:         <span id="systemUptime">???</span> 
+ wcGatewayUptime:      <span id="wcGatewayUptime">???</span>
+ systemCorrelationId:  <span id="systemCorrelationId">???</span>
+
+ temperatureExterior:  <span id="temperatureExterior">???</span>
+ temperatureInterior:  <span id="temperatureInterior">???</span>
+
+ lightLevelExterior:   <span id="lightLevelExterior">???</span>
+ lightLevelInterior:   <span id="lightLevelInterior">???</span> 
+
+ doorMotorRuntime:     <span id="doorMotorRuntime">???</span>
+ doorMotorSpeed:       <span id="doorMotorSpeed">???</span> 
+ doorState:            <span id="doorState">???</span>
+ switchDoorClosed:     <span id="switchDoorClosed">???</span>
+ switchDoorOpen:       <span id="switchDoorOpen">???</span> 
+
+ batteryVoltage:       <span id="batteryVoltage">???</span>
+ heaterPower:          <span id="heaterPower">???</span>
+
+ switchRunStop:        <span id="switchRunStop">???</span>
+ switchJog:            <span id="switchJog">???</span>
+ switchLight:          <span id="switchLight">???</span> 
+ switchLimitUpper:     <span id="switchLimitUpper">???</span></pre>
+<hr>
+<button onclick="send('o')">Open</button>
+<button onclick="send('c')">Close</button>
+<button onclick="send('h')">Heat</button>
+<button onclick="send('t')">Light</button>
+<button onclick="send('a')">Auto</button>
+<button onclick="send('m')">Manual</button>
+<button onclick="send('r')">Reset</button>
+
+<!--
+<a href='/o'>Open</a>&nbsp;&nbsp;<a href='/c'>Close</a>&nbsp;&nbsp;<a href='/h'>Heat</a>&nbsp;&nbsp;<a href='/t'>Light</a>&nbsp;&nbsp;<a href='/a'>Auto</a>&nbsp;&nbsp;<a href='/m'>Manual</a>&nbsp;&nbsp;<a href='/r'>Reset</a>
+-->
+</body>
+</html>

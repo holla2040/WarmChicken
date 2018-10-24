@@ -9,7 +9,7 @@ echo 'R' | nc 192.168.0.35 23; /home/holla/arduino-1.6.5/hardware/tools/avr/bin/
 
 /home/holla/arduino-1.6.5/hardware/tools/avr/bin/avrdude -C/home/holla/arduino-1.6.5/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino -P/dev/ttyUSB0 -b57600 -D -U flash:w:build-cli/arduino.hex:i
 
-echo 'R' | nc 192.168.0.10 23;avrdude -q -V -p atmega328p -c stk500v1 -P net:192.168.0.10:23 -U flash:w:build-cli/arduino.hex:i
+echo 'R' | nc 192.168.0.41 23;avrdude -q -V -p atmega328p -c stk500v1 -P net:192.168.0.41:23 -U flash:w:build-cli/arduino.hex:i
 */
 
 #include "Time.h"
@@ -167,6 +167,12 @@ void reset() {
 void fullStop() {
     doorSpeedSet(0);
     doorState = DOOR_STATE_STOPPED;
+    if (doorPositionOpen()) {
+      doorState = DOOR_STATE_OPEN;
+    } 
+    if (doorPositionClosed()) {
+      doorState = DOOR_STATE_CLOSED;
+    }
 }
 
 bool getUp() {
@@ -242,7 +248,7 @@ void lightOnRamp() {
     int i;
     for (i = 0; i < 101; i++) {
         speedA = wd.motorASpeed(i);
-        delay(100);
+        delay(25);
     }
 }
 
@@ -277,7 +283,7 @@ void commProcess(int c) {
         nextIdleStatusUpdate = 0;
         break;
     case 'L':
-        lightOn(50);
+        lightOnRamp();
         break;
     case 'F':
         lightOff();
@@ -355,7 +361,11 @@ void commProcess(int c) {
         doorClose();
         break;
     case 'H':
-        wd.load0On();
+        if (wd.getLoad0On()) {
+          wd.load0Off();
+        } else {
+          wd.load0On();
+        }
         break;
     case 'A': // MODE_AUTO
         Serial.println("auto");
@@ -599,8 +609,10 @@ void loopLight() {
       }
     }
 
-    if (wd.getLightSensor() > LIGHTLEVELDAY) {
-        lightOff();
+    if (mode == MODE_AUTO) {
+      if (wd.getLightSensor() > (LIGHTLEVELDAY+100)) {
+          lightOff();
+      }
     }
 
     lastLightSwitch = l;

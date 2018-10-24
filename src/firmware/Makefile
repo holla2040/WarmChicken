@@ -18,7 +18,7 @@ AVRDUDE_CONF			= ~/r/a/arduino/conf/avrdude.conf
                                             
 F_CPU					= 16000000
 ARDUINO_PORT            = /dev/$(DEVICE_FILE)
-TCP_PORT                = net:192.168.0.10:23
+TCP_PORT                = net:192.168.0.41:23
 
 include ~/r/a/arduino/makefile/Arduino.mk
                                             
@@ -37,7 +37,7 @@ runserial: all
 	make con
 
 run: all
-	echo -n 'R0 ' | nc 192.168.0.10 23
+	echo -n 'R0 ' | nc 192.168.0.41 23
 	make tcp_upload
 
 con:
@@ -50,6 +50,8 @@ push: all
 usb: all
 	/usr/bin/avrdude -V -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P /dev/ttyUSB0 -b57600 -D -U flash:w:/tmp/build/arduino.hex:i
 
-pusha: all
-	/home/holla/arduino/hardware/tools/avr/bin/avrdude -V -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P net:192.168.0.10:23 -D -U flash:w:/tmp/build/arduino.hex:i
+ota: flash
+
+flash: all
+	/home/holla/arduino/hardware/tools/avr/bin/avrdude -V -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P $(TCP_PORT) -D -U flash:w:/tmp/build/arduino.hex:i
 
