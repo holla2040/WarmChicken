@@ -20,7 +20,7 @@ F_CPU					= 16000000
 ARDUINO_PORT            = /dev/$(DEVICE_FILE)
 TCP_PORT                = net:192.168.0.41:23
 
-include ~/r/a/arduino/makefile/Arduino.mk
+include ./Arduino.mk
                                             
 ARDUINO_LIBS            = Stepper/src
                                             
@@ -50,8 +50,6 @@ push: all
 usb: all
 	/usr/bin/avrdude -V -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P /dev/ttyUSB0 -b57600 -D -U flash:w:/tmp/build/arduino.hex:i
 
-ota: flash
-
-flash: all
+ota: all
 	/home/holla/arduino/hardware/tools/avr/bin/avrdude -V -C/home/holla/arduino/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -carduino  -P $(TCP_PORT) -D -U flash:w:/tmp/build/arduino.hex:i
 

@@ -207,6 +207,7 @@ void post() {
     tsClient.print(postStr);
   }
 
+/*
   if (tsClient.connect(tsAPIHost, 80)) {
     String postStr = "PO2TBFL6DZWAIJFF";
     postStr += "&field1=";
@@ -222,6 +223,7 @@ void post() {
     tsClient.print("\n\n");
     tsClient.print(postStr);
   }
+*/
 }
 
 char c;
@@ -298,6 +300,7 @@ void loopSerial() {
 
 void loopPost() {
   if ((millis() > timeoutPost) && (jsonValid)) {
+    Serial.println("loopPost");
     post();
     timeoutPost = millis() + TIMEOUTPOST;
     jsonValid = 0;

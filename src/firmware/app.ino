@@ -650,18 +650,23 @@ void loopDoor() {
     fullStop();
   }
 
-  if (mode == MODE_AUTO) {
+  if (doorState == DOOR_STATE_OPENING) {
     if (doorPositionOpen()) {
       fullStop();
       doorState = DOOR_STATE_OPEN;
     } 
+  }
+
+  if (doorState == DOOR_STATE_CLOSING) {
     if (doorPositionClosed()) {
       fullStop();
       doorState = DOOR_STATE_CLOSED;
     }
+  }
 
+  if (mode == MODE_AUTO) {
     if ((lightLevel > LIGHTLEVELDAY) && (doorState != DOOR_STATE_OPEN)) {
-      doorOpen();
+      // CH doorOpen();
     } else {
         if ((lightLevel < LIGHTLEVELNIGHT) && (doorState != DOOR_STATE_CLOSED)) {
           doorClose();
